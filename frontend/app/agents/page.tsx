@@ -5,8 +5,10 @@ import { motion } from "framer-motion"
 import DashboardLayout from "@/components/layout/dashboard-layout"
 import AgentForm from "@/components/agents/agent-form"
 
+import { agentIcons, Agent, AgentData } from "@/types"
+
 export default function AgentsPage() {
-  const [agents, setAgents] = useState([
+  const [agents, setAgents] = useState<Agent[]>([
     {
       id: "1",
       name: "Spotify Subscription",
@@ -19,6 +21,7 @@ export default function AgentsPage() {
       status: "active",
       startDate: "2024-11-15",
       description: "Monthly subscription payment",
+      type: "subscription",
     },
     {
       id: "2",
@@ -32,34 +35,45 @@ export default function AgentsPage() {
       status: "active",
       startDate: "2024-11-01",
       description: "Apartment rent",
+      type: "rent",
     },
   ])
 
   const [showForm, setShowForm] = useState(false)
-  const [editingId, setEditingId] = useState(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
-  const handleSaveAgent = (agentData) => {
+  const handleSaveAgent = (agentData: AgentData) => {
     if (editingId) {
-      setAgents(agents.map((agent) => (agent.id === editingId ? { ...agentData, id: editingId } : agent)))
+      setAgents(
+        agents.map((agent) =>
+          agent.id === editingId
+            ? {
+                ...agent,
+                ...agentData,
+                icon: agentIcons[agentData.type] || "⚙️",
+              }
+            : agent
+        )
+      )
       setEditingId(null)
     } else {
-      setAgents([
-        ...agents,
-        {
-          ...agentData,
-          id: Date.now().toString(),
-        },
-      ])
+      const newAgent: Agent = {
+        ...agentData,
+        id: Date.now().toString(),
+        icon: agentIcons[agentData.type] || "⚙️",
+        status: "active",
+      }
+      setAgents([...agents, newAgent])
     }
     setShowForm(false)
   }
 
-  const handleEditAgent = (id) => {
+  const handleEditAgent = (id: string) => {
     setEditingId(id)
     setShowForm(true)
   }
 
-  const handleDeleteAgent = (id) => {
+  const handleDeleteAgent = (id: string) => {
     setAgents(agents.filter((agent) => agent.id !== id))
   }
 

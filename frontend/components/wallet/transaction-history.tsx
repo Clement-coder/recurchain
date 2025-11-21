@@ -3,15 +3,25 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
+import { Transaction } from "@/types"
+
+interface TransactionHistoryProps {
+  transactions: Transaction[]
+  filterStatus: string
+  onFilterStatusChange: (status: string) => void
+  filterType: string
+  onFilterTypeChange: (type: string) => void
+}
+
 export default function TransactionHistory({
   transactions,
   filterStatus,
   onFilterStatusChange,
   filterType,
   onFilterTypeChange,
-}) {
-  const [expandedTx, setExpandedTx] = useState(null)
-  const [showReceiptModal, setShowReceiptModal] = useState(null)
+}: TransactionHistoryProps) {
+  const [expandedTx, setExpandedTx] = useState<string | null>(null)
+  const [showReceiptModal, setShowReceiptModal] = useState<string | null>(null)
 
   return (
     <div className="space-y-4">

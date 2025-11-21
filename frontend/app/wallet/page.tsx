@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Zap, Landmark, Wand2 } from "lucide-react"
+import { Transaction } from "@/types"
 import DashboardLayout from "@/components/layout/dashboard-layout"
 import WalletHeader from "@/components/wallet/wallet-header"
 import WalletActions from "@/components/wallet/wallet-actions"
@@ -10,7 +11,7 @@ import TransactionHistory from "@/components/wallet/transaction-history"
 
 export default function WalletPage() {
   const [balance, setBalance] = useState(2450.75)
-  const [transactions, setTransactions] = useState([
+  const [transactions, setTransactions] = useState<Transaction[]>([
     {
       id: "1",
       type: "expense",
@@ -84,12 +85,12 @@ export default function WalletPage() {
     return true
   })
 
-  const handleDeposit = (amount) => {
+  const handleDeposit = (amount: number) => {
     setBalance(balance + amount)
     setShowDepositModal(false)
   }
 
-  const handleWithdraw = (amount) => {
+  const handleWithdraw = (amount: number) => {
     if (amount <= balance) {
       setBalance(balance - amount)
       setShowWithdrawModal(false)
@@ -132,7 +133,13 @@ export default function WalletPage() {
   )
 }
 
-function DepositModal({ onClose, onConfirm }) {
+function DepositModal({
+  onClose,
+  onConfirm,
+}: {
+  onClose: () => void
+  onConfirm: (amount: number) => void
+}) {
   const [amount, setAmount] = useState("")
   const [selectedWallet, setSelectedWallet] = useState("metamask")
   const [isProcessing, setIsProcessing] = useState(false)
@@ -242,7 +249,15 @@ function DepositModal({ onClose, onConfirm }) {
   )
 }
 
-function WithdrawModal({ balance, onClose, onConfirm }) {
+function WithdrawModal({
+  balance,
+  onClose,
+  onConfirm,
+}: {
+  balance: number
+  onClose: () => void
+  onConfirm: (amount: number) => void
+}) {
   const [amount, setAmount] = useState("")
   const [withdrawType, setWithdrawType] = useState("usdc")
   const [isProcessing, setIsProcessing] = useState(false)

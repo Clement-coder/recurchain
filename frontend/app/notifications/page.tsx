@@ -56,7 +56,7 @@ export default function NotificationsPage() {
     return true
   })
 
-  const markAsRead = (id) => {
+  const markAsRead = (id: string) => {
     setNotifications(notifications.map((notif) => (notif.id === id ? { ...notif, read: true } : notif)))
   }
 

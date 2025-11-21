@@ -3,7 +3,15 @@
 import { motion } from "framer-motion"
 import AgentCard from "./agent-card"
 
-export default function AgentGrid({ agents, onPauseResume, onDelete }) {
+import { Agent } from "@/types"
+
+interface AgentGridProps {
+  agents: Agent[]
+  onPauseResume: (id: string) => void
+  onDelete: (id: string) => void
+}
+
+export default function AgentGrid({ agents, onPauseResume, onDelete }: AgentGridProps) {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {

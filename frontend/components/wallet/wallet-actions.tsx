@@ -2,7 +2,12 @@
 
 import { motion } from "framer-motion"
 
-export default function WalletActions({ onDeposit, onWithdraw }) {
+interface WalletActionsProps {
+  onDeposit: () => void
+  onWithdraw: () => void
+}
+
+export default function WalletActions({ onDeposit, onWithdraw }: WalletActionsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <motion.button

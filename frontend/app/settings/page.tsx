@@ -39,16 +39,18 @@ export default function SettingsPage() {
     },
   })
 
-  const [editingSection, setEditingSection] = useState(null)
+  const [editingSection, setEditingSection] = useState<keyof typeof settings | null>(null)
   const [showSaveMessage, setShowSaveMessage] = useState(false)
-  const [tempSettings, setTempSettings] = useState(null)
+  const [tempSettings, setTempSettings] = useState<typeof settings | null>(null)
 
-  const handleEdit = (section) => {
+  type SettingsSectionType = keyof typeof settings
+
+  const handleEdit = (section: SettingsSectionType) => {
     setTempSettings(JSON.parse(JSON.stringify(settings)))
     setEditingSection(section)
   }
 
-  const handleSave = (section, updatedData) => {
+  const handleSave = (section: SettingsSectionType, updatedData: any) => {
     setSettings({
       ...settings,
       [section]: updatedData,
@@ -118,7 +120,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : editingSection === "profile" && tempSettings ? (
               <ProfileForm
                 data={tempSettings.profile}
                 onChange={(field, value) => {
@@ -129,7 +131,7 @@ export default function SettingsPage() {
                 }}
                 onSave={() => handleSave("profile", tempSettings.profile)}
               />
-            )}
+            ) : null}
           </SettingsSection>
 
           <SettingsSection
@@ -161,7 +163,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : editingSection === "bank" && tempSettings ? (
               <BankForm
                 data={tempSettings.bank}
                 onChange={(field, value) => {
@@ -172,7 +174,7 @@ export default function SettingsPage() {
                 }}
                 onSave={() => handleSave("bank", tempSettings.bank)}
               />
-            )}
+            ) : null}
           </SettingsSection>
 
           <SettingsSection
@@ -185,7 +187,7 @@ export default function SettingsPage() {
           >
             {editingSection !== "notifications" ? (
               <NotificationDisplay notifications={settings.notifications} />
-            ) : (
+            ) : editingSection === "notifications" && tempSettings ? (
               <NotificationForm
                 data={tempSettings.notifications}
                 onChange={(field, value) => {
@@ -196,7 +198,7 @@ export default function SettingsPage() {
                 }}
                 onSave={() => handleSave("notifications", tempSettings.notifications)}
               />
-            )}
+            ) : null}
           </SettingsSection>
 
           <SettingsSection
@@ -209,7 +211,7 @@ export default function SettingsPage() {
           >
             {editingSection !== "security" ? (
               <SecurityDisplay security={settings.security} />
-            ) : (
+            ) : editingSection === "security" && tempSettings ? (
               <SecurityForm
                 data={tempSettings.security}
                 onChange={(field, value) => {
@@ -220,7 +222,7 @@ export default function SettingsPage() {
                 }}
                 onSave={() => handleSave("security", tempSettings.security)}
               />
-            )}
+            ) : null}
           </SettingsSection>
 
           <SettingsSection
@@ -233,7 +235,7 @@ export default function SettingsPage() {
           >
             {editingSection !== "privacy" ? (
               <PrivacyDisplay privacy={settings.privacy} />
-            ) : (
+            ) : editingSection === "privacy" && tempSettings ? (
               <PrivacyForm
                 data={tempSettings.privacy}
                 onChange={(field, value) => {
@@ -244,7 +246,7 @@ export default function SettingsPage() {
                 }}
                 onSave={() => handleSave("privacy", tempSettings.privacy)}
               />
-            )}
+            ) : null}
           </SettingsSection>
         </div>
       </div>
@@ -252,7 +254,15 @@ export default function SettingsPage() {
   )
 }
 
-function ProfileForm({ data, onChange, onSave }) {
+function ProfileForm({
+  data,
+  onChange,
+  onSave,
+}: {
+  data: any
+  onChange: (field: string, value: string) => void
+  onSave: () => void
+}) {
   return (
     <div className="space-y-4">
       <div>
@@ -301,7 +311,15 @@ function ProfileForm({ data, onChange, onSave }) {
   )
 }
 
-function BankForm({ data, onChange, onSave }) {
+function BankForm({
+  data,
+  onChange,
+  onSave,
+}: {
+  data: any
+  onChange: (field: string, value: string) => void
+  onSave: () => void
+}) {
   return (
     <div className="space-y-4">
       <div>
@@ -352,7 +370,7 @@ function BankForm({ data, onChange, onSave }) {
   )
 }
 
-function NotificationDisplay({ notifications }) {
+function NotificationDisplay({ notifications }: { notifications: any }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -377,7 +395,15 @@ function NotificationDisplay({ notifications }) {
   )
 }
 
-function NotificationForm({ data, onChange, onSave }) {
+function NotificationForm({
+  data,
+  onChange,
+  onSave,
+}: {
+  data: any
+  onChange: (field: string, value: boolean | number) => void
+  onSave: () => void
+}) {
   return (
     <div className="space-y-4">
       <div className="space-y-3">
@@ -446,7 +472,7 @@ function NotificationForm({ data, onChange, onSave }) {
   )
 }
 
-function SecurityDisplay({ security }) {
+function SecurityDisplay({ security }: { security: any }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -469,7 +495,15 @@ function SecurityDisplay({ security }) {
   )
 }
 
-function SecurityForm({ data, onChange, onSave }) {
+function SecurityForm({
+  data,
+  onChange,
+  onSave,
+}: {
+  data: any
+  onChange: (field: string, value: boolean | number) => void
+  onSave: () => void
+}) {
   return (
     <div className="space-y-4">
       <label className="flex items-center gap-3 cursor-pointer">
@@ -509,7 +543,7 @@ function SecurityForm({ data, onChange, onSave }) {
   )
 }
 
-function PrivacyDisplay({ privacy }) {
+function PrivacyDisplay({ privacy }: { privacy: any }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -534,7 +568,15 @@ function PrivacyDisplay({ privacy }) {
   )
 }
 
-function PrivacyForm({ data, onChange, onSave }) {
+function PrivacyForm({
+  data,
+  onChange,
+  onSave,
+}: {
+  data: any
+  onChange: (field: string, value: boolean) => void
+  onSave: () => void
+}) {
   return (
     <div className="space-y-4">
       <label className="flex items-center gap-3 cursor-pointer">

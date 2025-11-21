@@ -4,7 +4,9 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Music, Briefcase, Home, CreditCard, Shield, Settings } from "lucide-react"
 
-const agentTypes = [
+import { Agent, AgentData, AgentType } from "@/types"
+
+export const agentTypes = [
   { value: "subscription", label: "Subscription", Icon: Music },
   { value: "salary", label: "Salary", Icon: Briefcase },
   { value: "rent", label: "Rent", Icon: Home },
@@ -22,29 +24,35 @@ const frequencies = [
   { value: "yearly", label: "Yearly" },
 ]
 
-export default function AgentForm({ agent, onSave, onCancel }) {
+interface AgentFormProps {
+  agent?: Agent | null
+  onSave: (agentData: AgentData) => void
+  onCancel: () => void
+}
+
+export default function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
   const [formData, setFormData] = useState(
     agent || {
       name: "",
-      type: "subscription",
+      type: "subscription" as AgentType,
       amount: "",
       frequency: "monthly",
       recipient: "",
       recipientType: "USDC",
       description: "",
       startDate: new Date().toISOString().split("T")[0],
-    },
+    }
   )
 
   const [showConfirm, setShowConfirm] = useState(false)
-  const [errors, setErrors] = useState({})
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
   const selectedType = agentTypes.find((t) => t.value === formData.type)
 
   const validateForm = () => {
-    const newErrors = {}
+    const newErrors: { [key: string]: string } = {}
     if (!formData.name.trim()) newErrors.name = "Name is required"
-    if (!formData.amount || Number.parseFloat(formData.amount) <= 0) {
+    if (!formData.amount || Number.parseFloat(String(formData.amount)) <= 0) {
       newErrors.amount = "Valid amount is required"
     }
     if (!formData.recipient.trim()) newErrors.recipient = "Recipient is required"
@@ -66,7 +74,7 @@ export default function AgentForm({ agent, onSave, onCancel }) {
 
     onSave({
       ...formData,
-      amount: Number.parseFloat(formData.amount),
+      amount: Number.parseFloat(String(formData.amount)),
       nextRun: nextRunDate.toISOString().split("T")[0],
     })
   }
@@ -97,7 +105,7 @@ export default function AgentForm({ agent, onSave, onCancel }) {
                 onClick={() => {
                   setFormData({
                     ...formData,
-                    type: type.value,
+                    type: type.value as AgentType,
                   })
                 }}
                 className={`p-3 rounded-lg border-2 transition-all text-center ${

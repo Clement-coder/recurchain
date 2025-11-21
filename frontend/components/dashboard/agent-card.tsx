@@ -4,7 +4,15 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { MoreVertical, Circle, Trash2, Eye } from "lucide-react"
 
-export default function AgentCard({ agent, onPauseResume, onDelete }) {
+import { Agent } from "@/types"
+
+interface AgentCardProps {
+  agent: Agent
+  onPauseResume: () => void
+  onDelete: () => void
+}
+
+export default function AgentCard({ agent, onPauseResume, onDelete }: AgentCardProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
@@ -27,7 +35,7 @@ export default function AgentCard({ agent, onPauseResume, onDelete }) {
       >
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-start gap-3">
-            <Circle className="text-3xl" />
+            <div className="text-3xl">{agent.icon}</div>
             <div>
               <h3 className="font-semibold text-foreground text-sm">{agent.name}</h3>
               <p className="text-xs text-muted-foreground">{agent.recipient}</p>

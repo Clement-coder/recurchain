@@ -15,7 +15,7 @@ const navItems = [
   { label: "Settings", href: "/settings", icon: Settings },
 ]
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(true)
 

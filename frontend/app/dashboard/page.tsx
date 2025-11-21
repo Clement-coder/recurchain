@@ -8,17 +8,10 @@ import AgentGrid from "@/components/dashboard/agent-grid"
 import NotificationsPanel from "@/components/dashboard/notifications-panel"
 import SearchBar from "@/components/dashboard/search-bar"
 
-export default function DashboardPage() {
-  const iconMap = {
-    subscription: Music,
-    salary: Briefcase,
-    rent: Home,
-    loan: CreditCard,
-    insurance: Shield,
-    cloud: Cloud,
-  }
+import { Agent, agentIcons } from "@/types"
 
-  const [agents, setAgents] = useState([
+export default function DashboardPage() {
+  const [agents, setAgents] = useState<Agent[]>([
     {
       id: "1",
       name: "Spotify Subscription",
@@ -30,7 +23,9 @@ export default function DashboardPage() {
       recipientType: "USDC",
       lastPayment: "2024-11-15",
       nextRun: "2024-12-15",
-      icon: Music,
+      icon: agentIcons.subscription,
+      description: "Monthly subscription for music streaming.",
+      startDate: "2023-01-15",
     },
     {
       id: "2",
@@ -43,7 +38,9 @@ export default function DashboardPage() {
       recipientType: "Naira",
       lastPayment: "2024-11-01",
       nextRun: "2024-12-01",
-      icon: Home,
+      icon: agentIcons.rent,
+      description: "Monthly rent for apartment.",
+      startDate: "2023-01-01",
     },
     {
       id: "3",
@@ -56,7 +53,9 @@ export default function DashboardPage() {
       recipientType: "USDC",
       lastPayment: "2024-11-10",
       nextRun: "2024-11-24",
-      icon: Briefcase,
+      icon: agentIcons.salary,
+      description: "Payment for freelance work.",
+      startDate: "2023-05-10",
     },
     {
       id: "4",
@@ -69,7 +68,9 @@ export default function DashboardPage() {
       recipientType: "USDC",
       lastPayment: "2024-11-10",
       nextRun: "2024-12-10",
-      icon: Shield,
+      icon: agentIcons.insurance,
+      description: "Monthly car insurance premium.",
+      startDate: "2023-02-10",
     },
     {
       id: "5",
@@ -82,7 +83,9 @@ export default function DashboardPage() {
       recipientType: "USDC",
       lastPayment: "2024-11-08",
       nextRun: "2024-12-08",
-      icon: Cloud,
+      icon: agentIcons.subscription,
+      description: "Monthly subscription for cloud storage.",
+      startDate: "2023-03-08",
     },
     {
       id: "6",
@@ -95,15 +98,17 @@ export default function DashboardPage() {
       recipientType: "Naira",
       lastPayment: "2024-11-12",
       nextRun: "2024-12-12",
-      icon: CreditCard,
+      icon: agentIcons.loan,
+      description: "Monthly loan repayment.",
+      startDate: "2023-04-12",
     },
   ])
 
-  const [filteredAgents, setFilteredAgents] = useState(agents)
+  const [filteredAgents, setFilteredAgents] = useState<Agent[]>(agents)
   const [searchQuery, setSearchQuery] = useState("")
   const [showNotifications, setShowNotifications] = useState(false)
 
-  const handleSearch = (query) => {
+  const handleSearch = (query: string) => {
     setSearchQuery(query)
     if (!query) {
       setFilteredAgents(agents)
@@ -118,7 +123,7 @@ export default function DashboardPage() {
     setFilteredAgents(filtered)
   }
 
-  const handlePauseResume = (id) => {
+  const handlePauseResume = (id: string) => {
     setAgents(
       agents.map((agent) =>
         agent.id === id ? { ...agent, status: agent.status === "active" ? "paused" : "active" } : agent,
@@ -131,7 +136,7 @@ export default function DashboardPage() {
     )
   }
 
-  const handleDeleteAgent = (id) => {
+  const handleDeleteAgent = (id: string) => {
     setAgents(agents.filter((agent) => agent.id !== id))
     setFilteredAgents(filteredAgents.filter((agent) => agent.id !== id))
   }

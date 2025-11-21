@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 
-export default function WalletHeader({ balance }) {
+export default function WalletHeader({ balance }: { balance: number }) {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {

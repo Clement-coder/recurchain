@@ -89,7 +89,7 @@ export default function HistoryPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [filterType, setFilterType] = useState("all")
-  const [expandedId, setExpandedId] = useState(null)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const filteredTransactions = transactions.filter((tx) => {
     if (searchQuery && !tx.agentName.toLowerCase().includes(searchQuery.toLowerCase())) {

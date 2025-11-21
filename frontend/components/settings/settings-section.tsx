@@ -1,8 +1,27 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
+import React from "react"
 
-export default function SettingsSection({ title, description, children, isEditing, onEdit, onCancel }) {
+interface SettingsSectionProps {
+  title: string
+  description: string
+  children: React.ReactNode
+  isEditing: boolean
+  onEdit: () => void
+  onSave: (data?: any) => void
+  onCancel: () => void
+}
+
+export default function SettingsSection({
+  title,
+  description,
+  children,
+  isEditing,
+  onEdit,
+  onCancel,
+  onSave,
+}: SettingsSectionProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
