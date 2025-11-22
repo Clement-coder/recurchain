@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
+import { WalletButton } from "../ui/walletButton"
 
 export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -45,23 +46,7 @@ export default function LoginForm() {
       </div>
 
       <motion.div whileHover={{ scale: 0.99 }} whileTap={{ scale: 0.97 }}>
-        <Button
-          onClick={handleSignUp}
-          disabled={isLoading}
-          className="w-full h-11 rounded-md bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50"
-        >
-          {isLoading ? (
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-              className="inline-block"
-            >
-              ⟳
-            </motion.div>
-          ) : (
-            "Sign Up with Email"
-          )}
-        </Button>
+        <WalletButton/>
       </motion.div>
 
       <div className="relative">
