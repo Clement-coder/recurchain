@@ -13,6 +13,7 @@
     "@privy-io/wagmi": "^2.0.2",
     "@tanstack/react-query": "^5.90.10",
     "@vercel/analytics": "^1.5.0",
+    "ethers": "^6.15.0",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.554.0",
     "next": "16.0.3",

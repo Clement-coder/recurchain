@@ -1,100 +1,79 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Zap, Landmark, Wand2 } from "lucide-react"
-import { Transaction } from "@/types"
-import DashboardLayout from "@/components/layout/dashboard-layout"
-import WalletHeader from "@/components/wallet/wallet-header"
-import WalletActions from "@/components/wallet/wallet-actions"
-import TransactionHistory from "@/components/wallet/transaction-history"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Zap, Landmark, Wand2 } from "lucide-react";
+import { Transaction } from "@/types";
+import DashboardLayout from "@/components/layout/dashboard-layout";
+import WalletHeader from "@/components/wallet/wallet-header";
+import WalletActions from "@/components/wallet/wallet-actions";
+import TransactionHistory from "@/components/wallet/transaction-history";
+
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { ethers } from "ethers"; // or viem
 
 export default function WalletPage() {
-  const [balance, setBalance] = useState(2450.75)
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: "1",
-      type: "expense",
-      agent: "Spotify Subscription",
-      amount: 9.99,
-      currency: "USDC",
-      status: "success",
-      date: "2024-11-20",
-      time: "14:32",
-      recipient: "Spotify AB",
-      txHash: "0x1234...5678",
-      proof: "receipt-1.pdf",
-    },
-    {
-      id: "2",
-      type: "expense",
-      agent: "Rent Payment",
-      amount: 1200,
-      currency: "Naira",
-      status: "success",
-      date: "2024-11-19",
-      time: "09:15",
-      recipient: "John Landlord",
-      proof: "bank-transfer-019.pdf",
-    },
-    {
-      id: "3",
-      type: "income",
-      agent: "Deposit from Kraken",
-      amount: 5000,
-      currency: "USDC",
-      status: "success",
-      date: "2024-11-18",
-      time: "16:45",
-      recipient: "Your Wallet",
-      txHash: "0xabcd...ef01",
-    },
-    {
-      id: "4",
-      type: "expense",
-      agent: "Insurance Premium",
-      amount: 125.5,
-      currency: "USDC",
-      status: "success",
-      date: "2024-11-17",
-      time: "11:20",
-      recipient: "AXA Insurance",
-      txHash: "0x2345...6789",
-    },
-    {
-      id: "5",
-      type: "expense",
-      agent: "Cloud Storage",
-      amount: 9.99,
-      currency: "USDC",
-      status: "pending",
-      date: "2024-11-16",
-      time: "08:00",
-      recipient: "Google Cloud",
-    },
-  ])
+  const { user, ready: privyReady, authenticated } = usePrivy();
+  const { wallets, ready: walletsReady } = useWallets();
 
-  const [showDepositModal, setShowDepositModal] = useState(false)
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false)
-  const [filterStatus, setFilterStatus] = useState("all")
-  const [filterType, setFilterType] = useState("all")
+  const [balance, setBalance] = useState<number>(0);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+
+  const [transactions, setTransactions] = useState<Transaction[]>([
+    // ... your sample transactions here
+  ]);
+
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<"all" | string>("all");
+  const [filterType, setFilterType] = useState<"all" | string>("all");
 
   const filteredTransactions = transactions.filter((tx) => {
-    if (filterStatus !== "all" && tx.status !== filterStatus) return false
-    if (filterType !== "all" && tx.type !== filterType) return false
-    return true
-  })
+    if (filterStatus !== "all" && tx.status !== filterStatus) return false;
+    if (filterType !== "all" && tx.type !== filterType) return false;
+    return true;
+  });
 
-  const handleDeposit = (amount: number) => {
-    setBalance(balance + amount)
-    setShowDepositModal(false)
+  // Effect: find embedded wallet + fetch balance
+  useEffect(() => {
+    if (!privyReady || !walletsReady || !authenticated) {
+      return;
+    }
+
+    // Find the embedded EVM wallet (walletClientType = 'privy')
+    const embedded = wallets.find(
+      (w) => w.walletClientType === 'privy'
+    );
+    if (!embedded) {
+      console.warn("No embedded privy wallet found");
+      return;
+    }
+
+    // Set wallet address
+    setWalletAddress(embedded.address);
+
+    // Get provider and fetch balance
+    (async () => {
+      try {
+        const provider = await embedded.getEthereumProvider();
+        // If using ethers.js:
+        const etherProvider = new ethers.providers.Web3Provider(provider);
+        const bal = await etherProvider.getBalance(embedded.address);
+        // convert from wei
+        const formatted = parseFloat(ethers.utils.formatEther(bal));
+        setBalance(formatted);
+      } catch (err) {
+        console.error("Error fetching balance", err);
+      }
+    })();
+  }, [privyReady, walletsReady, authenticated, wallets]);
+
+  if (!privyReady || !walletsReady) {
+    return <div>Loading wallet info…</div>;
   }
 
-  const handleWithdraw = (amount: number) => {
-    if (amount <= balance) {
-      setBalance(balance - amount)
-      setShowWithdrawModal(false)
-    }
+  if (!authenticated) {
+    return <div>Please log in to see your wallet.</div>;
   }
 
   return (
@@ -106,14 +85,22 @@ export default function WalletPage() {
           className="sticky top-0 bg-background/95 backdrop-blur border-b border-border z-40 p-6"
         >
           <h1 className="text-3xl font-bold text-foreground">Wallet</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage your USDC balance and transactions</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {walletAddress
+              ? `Address: ${walletAddress}`
+              : "No embedded wallet found"}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {`Balance: ${balance.toFixed(4)} ETH`} {/* or USDC if you check token */}
+          </p>
         </motion.div>
 
         <div className="p-6 space-y-6">
           <WalletHeader balance={balance} />
-
-          <WalletActions onDeposit={() => setShowDepositModal(true)} onWithdraw={() => setShowWithdrawModal(true)} />
-
+          <WalletActions
+            onDeposit={() => setShowDepositModal(true)}
+            onWithdraw={() => setShowWithdrawModal(true)}
+          />
           <TransactionHistory
             transactions={filteredTransactions}
             filterStatus={filterStatus}
@@ -123,41 +110,55 @@ export default function WalletPage() {
           />
         </div>
 
-        {showDepositModal && <DepositModal onClose={() => setShowDepositModal(false)} onConfirm={handleDeposit} />}
-
+        {showDepositModal && (
+          <DepositModal
+            onClose={() => setShowDepositModal(false)}
+            onConfirm={(amt) => {
+              setBalance((b) => b + amt);
+              setShowDepositModal(false);
+            }}
+          />
+        )}
         {showWithdrawModal && (
-          <WithdrawModal balance={balance} onClose={() => setShowWithdrawModal(false)} onConfirm={handleWithdraw} />
+          <WithdrawModal
+            balance={balance}
+            onClose={() => setShowWithdrawModal(false)}
+            onConfirm={(amt) => {
+              setBalance((b) => b - amt);
+              setShowWithdrawModal(false);
+            }}
+          />
         )}
       </div>
     </DashboardLayout>
-  )
+  );
 }
 
 function DepositModal({
   onClose,
   onConfirm,
 }: {
-  onClose: () => void
-  onConfirm: (amount: number) => void
+  onClose: () => void;
+  onConfirm: (amount: number) => void;
 }) {
-  const [amount, setAmount] = useState("")
-  const [selectedWallet, setSelectedWallet] = useState("metamask")
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [amount, setAmount] = useState("");
+  const [selectedWallet, setSelectedWallet] = useState("metamask");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const walletOptions = [
     { id: "metamask", name: "MetaMask", Icon: Zap },
     { id: "coinbase", name: "Coinbase Wallet", Icon: Landmark },
     { id: "phantom", name: "Phantom", Icon: Wand2 },
-  ]
+  ];
 
-  const handleSubmit = async () => {
-    if (!amount || Number.parseFloat(amount) <= 0) return
-    setIsProcessing(true)
+  const handleSubmit = () => {
+    if (!amount || parseFloat(amount) <= 0) return;
+    setIsProcessing(true);
     setTimeout(() => {
-      onConfirm(Number.parseFloat(amount))
-      setIsProcessing(false)
-    }, 1000)
-  }
+      onConfirm(parseFloat(amount));
+      setIsProcessing(false);
+    }, 1000);
+  };
 
   return (
     <motion.div
@@ -171,14 +172,17 @@ function DepositModal({
         animate={{ scale: 1, opacity: 1 }}
         className="bg-card border border-border rounded-lg p-6 max-w-sm w-full"
       >
-        <h3 className="text-xl font-semibold text-foreground mb-4">Deposit USDC</h3>
-
+        <h3 className="text-xl font-semibold text-foreground mb-4">
+          Deposit Funds
+        </h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Select Wallet</label>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Select Wallet
+            </label>
             <div className="grid grid-cols-3 gap-2">
               {walletOptions.map((wallet) => {
-                const IconComponent = wallet.Icon
+                const Icon = wallet.Icon;
                 return (
                   <motion.button
                     key={wallet.id}
@@ -191,17 +195,19 @@ function DepositModal({
                     }`}
                   >
                     <div className="flex justify-center mb-1">
-                      <IconComponent className="w-6 h-6 text-foreground" />
+                      <Icon className="w-6 h-6 text-foreground" />
                     </div>
                     <div className="text-xs text-foreground">{wallet.name}</div>
                   </motion.button>
-                )
+                );
               })}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Amount (USDC)</label>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Amount
+            </label>
             <div className="flex items-center border border-border rounded-lg bg-input">
               <input
                 type="number"
@@ -210,20 +216,8 @@ function DepositModal({
                 onChange={(e) => setAmount(e.target.value)}
                 className="flex-1 px-4 py-3 bg-transparent text-foreground focus:outline-none"
               />
-              <span className="px-4 text-muted-foreground">USDC</span>
+              <span className="px-4 text-muted-foreground">USD</span>
             </div>
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            {[100, 500, 1000, 2500].map((quickAmount) => (
-              <button
-                key={quickAmount}
-                onClick={() => setAmount(quickAmount.toString())}
-                className="px-3 py-1 text-xs rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
-              >
-                ${quickAmount}
-              </button>
-            ))}
           </div>
 
           <div className="flex gap-3 pt-4">
@@ -246,7 +240,7 @@ function DepositModal({
         </div>
       </motion.div>
     </motion.div>
-  )
+  );
 }
 
 function WithdrawModal({
@@ -254,22 +248,23 @@ function WithdrawModal({
   onClose,
   onConfirm,
 }: {
-  balance: number
-  onClose: () => void
-  onConfirm: (amount: number) => void
+  balance: number;
+  onClose: () => void;
+  onConfirm: (amount: number) => void;
 }) {
-  const [amount, setAmount] = useState("")
-  const [withdrawType, setWithdrawType] = useState("usdc")
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [amount, setAmount] = useState("");
+  const [withdrawType, setWithdrawType] = useState<"usdc" | "naira">("usdc");
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleSubmit = async () => {
-    if (!amount || Number.parseFloat(amount) <= 0 || Number.parseFloat(amount) > balance) return
-    setIsProcessing(true)
+  const handleSubmit = () => {
+    const num = parseFloat(amount);
+    if (!amount || num <= 0 || num > balance) return;
+    setIsProcessing(true);
     setTimeout(() => {
-      onConfirm(Number.parseFloat(amount))
-      setIsProcessing(false)
-    }, 1000)
-  }
+      onConfirm(num);
+      setIsProcessing(false);
+    }, 1000);
+  };
 
   return (
     <motion.div
@@ -283,11 +278,14 @@ function WithdrawModal({
         animate={{ scale: 1, opacity: 1 }}
         className="bg-card border border-border rounded-lg p-6 max-w-sm w-full"
       >
-        <h3 className="text-xl font-semibold text-foreground mb-4">Withdraw Funds</h3>
-
+        <h3 className="text-xl font-semibold text-foreground mb-4">
+          Withdraw Funds
+        </h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Withdraw as</label>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Withdraw as
+            </label>
             <div className="flex gap-2">
               <button
                 onClick={() => setWithdrawType("usdc")}
@@ -314,11 +312,15 @@ function WithdrawModal({
 
           <div className="bg-secondary rounded-lg p-3">
             <p className="text-xs text-muted-foreground">Available Balance</p>
-            <p className="text-lg font-semibold text-foreground">${balance.toFixed(2)} USDC</p>
+            <p className="text-lg font-semibold text-foreground">
+              {balance.toFixed(2)} USDC
+            </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Amount</label>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Amount
+            </label>
             <div className="flex items-center border border-border rounded-lg bg-input">
               <input
                 type="number"
@@ -327,7 +329,9 @@ function WithdrawModal({
                 onChange={(e) => setAmount(e.target.value)}
                 className="flex-1 px-4 py-3 bg-transparent text-foreground focus:outline-none"
               />
-              <span className="px-4 text-muted-foreground">{withdrawType === "usdc" ? "USDC" : "₦"}</span>
+              <span className="px-4 text-muted-foreground">
+                {withdrawType === "usdc" ? "USDC" : "₦"}
+              </span>
             </div>
           </div>
 
@@ -351,5 +355,5 @@ function WithdrawModal({
         </div>
       </motion.div>
     </motion.div>
-  )
+  );
 }

@@ -1,16 +1,18 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Music, Briefcase, Home, CreditCard, Shield, Cloud, Bell } from "lucide-react"
-import DashboardLayout from "@/components/layout/dashboard-layout"
-import AgentGrid from "@/components/dashboard/agent-grid"
-import NotificationsPanel from "@/components/dashboard/notifications-panel"
-import SearchBar from "@/components/dashboard/search-bar"
-
-import { Agent, agentIcons } from "@/types"
+import { useState, useEffect } from "react";
+import { usePrivy } from "@privy-io/react-auth";
+import { motion } from "framer-motion";
+import { Bell } from "lucide-react";
+import DashboardLayout from "@/components/layout/dashboard-layout";
+import AgentGrid from "@/components/dashboard/agent-grid";
+import NotificationsPanel from "@/components/dashboard/notifications-panel";
+import SearchBar from "@/components/dashboard/search-bar";
+import { Agent, agentIcons } from "@/types";
 
 export default function DashboardPage() {
+  const { user, ready, authenticated } = usePrivy();
+
   const [agents, setAgents] = useState<Agent[]>([
     {
       id: "1",
@@ -102,43 +104,80 @@ export default function DashboardPage() {
       description: "Monthly loan repayment.",
       startDate: "2023-04-12",
     },
-  ])
+  ]);
+  const [filteredAgents, setFilteredAgents] = useState<Agent[]>(agents);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  const [filteredAgents, setFilteredAgents] = useState<Agent[]>(agents)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [showNotifications, setShowNotifications] = useState(false)
+  // Compute displayName or email
+  const displayName = (() => {
+    if (!user) return "";
+    // Try Google first
+    if (user.google && user.google.name) {
+      return user.google.name;
+    }
+    // Then GitHub
+    if (user.github && user.github.name) {
+      return user.github.name;
+    }
+    // Then email (if linked)
+    if (user.email && user.email.address) {
+      return user.email.address;
+    }
+    return "";
+  })();
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query)
+    setSearchQuery(query);
     if (!query) {
-      setFilteredAgents(agents)
-      return
+      setFilteredAgents(agents);
+      return;
     }
     const filtered = agents.filter(
       (agent) =>
         agent.name.toLowerCase().includes(query.toLowerCase()) ||
         agent.recipient.toLowerCase().includes(query.toLowerCase()) ||
-        agent.recipientType.toLowerCase().includes(query.toLowerCase()),
-    )
-    setFilteredAgents(filtered)
-  }
+        agent.recipientType.toLowerCase().includes(query.toLowerCase())
+    );
+    setFilteredAgents(filtered);
+  };
 
   const handlePauseResume = (id: string) => {
     setAgents(
       agents.map((agent) =>
-        agent.id === id ? { ...agent, status: agent.status === "active" ? "paused" : "active" } : agent,
-      ),
-    )
+        agent.id === id
+          ? {
+              ...agent,
+              status: agent.status === "active" ? "paused" : "active",
+            }
+          : agent
+      )
+    );
     setFilteredAgents(
       filteredAgents.map((agent) =>
-        agent.id === id ? { ...agent, status: agent.status === "active" ? "paused" : "active" } : agent,
-      ),
-    )
-  }
+        agent.id === id
+          ? {
+              ...agent,
+              status: agent.status === "active" ? "paused" : "active",
+            }
+          : agent
+      )
+    );
+  };
 
   const handleDeleteAgent = (id: string) => {
-    setAgents(agents.filter((agent) => agent.id !== id))
-    setFilteredAgents(filteredAgents.filter((agent) => agent.id !== id))
+    setAgents(agents.filter((agent) => agent.id !== id));
+    setFilteredAgents(filteredAgents.filter((agent) => agent.id !== id));
+  };
+
+  // Optional: Wait for Privy to be ready
+  if (!ready) {
+    return <div>Loading …</div>;
+  }
+
+  // Require auth to show dashboard
+  if (!authenticated) {
+    return <div>Please log in to view your dashboard.</div>;
   }
 
   return (
@@ -152,8 +191,14 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-                <p className="text-sm text-muted-foreground mt-1">Manage {agents.length} recurring payment agents</p>
+                <h1 className="text-3xl font-bold text-foreground">
+                  Dashboard
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {displayName
+                    ? `Welcome, ${displayName}`
+                    : `Manage ${agents.length} recurring payment agents`}
+                </p>
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -171,14 +216,21 @@ export default function DashboardPage() {
 
         <div className="p-6 space-y-6">
           {showNotifications && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
               <NotificationsPanel />
             </motion.div>
           )}
 
-          <AgentGrid agents={filteredAgents} onPauseResume={handlePauseResume} onDelete={handleDeleteAgent} />
+          <AgentGrid
+            agents={filteredAgents}
+            onPauseResume={handlePauseResume}
+            onDelete={handleDeleteAgent}
+          />
         </div>
       </div>
     </DashboardLayout>
-  )
+  );
 }
