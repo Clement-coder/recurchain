@@ -7,7 +7,7 @@ export const privyConfig: PrivyClientConfig = {
     requireUserPasswordOnCreate: true,
     showWalletUIs: true
   },
-  loginMethods: ['wallet', 'email', 'sms'],
+  loginMethods: ['google', 'email', 'github'],
   appearance: {
     showWalletLoginFirst: true
   }

@@ -1,48 +1,54 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { WalletButton } from "../ui/walletButton"
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { SignUpButton } from "../ui/SignUpButton"; // updated import path
+import { usePrivy } from "@privy-io/react-auth";
+import { useRouter } from "next/navigation";
 
 export default function LoginForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [email, setEmail] = useState("")
-  const [showSuccess, setShowSuccess] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const { ready, authenticated } = usePrivy();
+  const router = useRouter();
+
+  // Listen for authentication changes
+  useEffect(() => {
+    if (authenticated) {
+      // When user is authenticated, show success + redirect
+      setShowSuccess(true);
+
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1500);
+    }
+  }, [authenticated, router]);
 
   const handleSignUp = async () => {
-    setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
-      setShowSuccess(true)
+    if (!ready) return;
 
-      // Store session in local storage
-      localStorage.setItem(
-        "recurchain_session",
-        JSON.stringify({
-          user: email || "user@example.com",
-          timestamp: new Date().toISOString(),
-        }),
-      )
-
-      // Redirect to dashboard after 1.5s
-      setTimeout(() => {
-        window.location.href = "/dashbaord"
-      }, 1500)
-    }, 800)
-  }
+    setIsLoading(true);
+    try {
+      // Using Privy login flow
+      await usePrivy().login();
+      // The effect above will handle UI / redirect after login
+    } catch (err) {
+      console.error("Error during sign-up / login:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-  
-
       <motion.div whileHover={{ scale: 0.99 }} whileTap={{ scale: 0.97 }}>
-        <WalletButton/>
+        <SignUpButton />
       </motion.div>
 
-  
-
-  
+      {isLoading && (
+        <p className="text-center text-sm">Logging you in...</p>
+      )}
 
       {showSuccess && (
         <motion.div
@@ -55,11 +61,19 @@ export default function LoginForm() {
             animate={{ scale: 1, opacity: 1 }}
             className="bg-card border border-border rounded-lg p-6 text-center max-w-sm"
           >
-            <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 0.6 }} className="text-4xl mb-4">
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 0.6 }}
+              className="text-4xl mb-4"
+            >
               ✓
             </motion.div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Account Created</h3>
-            <p className="text-muted-foreground text-sm mb-4">Redirecting to dashboard...</p>
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Account Created
+            </h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              Redirecting to dashboard...
+            </p>
           </motion.div>
         </motion.div>
       )}
@@ -75,5 +89,5 @@ export default function LoginForm() {
         </a>
       </p>
     </div>
-  )
+  );
 }
