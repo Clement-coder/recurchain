@@ -278,10 +278,11 @@ export interface RecurChainAgentInterface extends Interface {
 }
 
 export namespace AgentCancelledEvent {
-  export type InputTuple = [agentId: BigNumberish];
-  export type OutputTuple = [agentId: bigint];
+  export type InputTuple = [agentId: BigNumberish, user: AddressLike];
+  export type OutputTuple = [agentId: bigint, user: string];
   export interface OutputObject {
     agentId: bigint;
+    user: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -347,18 +348,21 @@ export namespace AgentResumedEvent {
 export namespace AgentUpdatedEvent {
   export type InputTuple = [
     agentId: BigNumberish,
+    user: AddressLike,
     name: string,
     amount: BigNumberish,
     frequency: BigNumberish
   ];
   export type OutputTuple = [
     agentId: bigint,
+    user: string,
     name: string,
     amount: bigint,
     frequency: bigint
   ];
   export interface OutputObject {
     agentId: bigint;
+    user: string;
     name: string;
     amount: bigint;
     frequency: bigint;
@@ -988,7 +992,7 @@ export interface RecurChainAgent extends BaseContract {
   >;
 
   filters: {
-    "AgentCancelled(uint256)": TypedContractEvent<
+    "AgentCancelled(uint256,address)": TypedContractEvent<
       AgentCancelledEvent.InputTuple,
       AgentCancelledEvent.OutputTuple,
       AgentCancelledEvent.OutputObject
@@ -1032,7 +1036,7 @@ export interface RecurChainAgent extends BaseContract {
       AgentResumedEvent.OutputObject
     >;
 
-    "AgentUpdated(uint256,string,uint256,uint8)": TypedContractEvent<
+    "AgentUpdated(uint256,address,string,uint256,uint8)": TypedContractEvent<
       AgentUpdatedEvent.InputTuple,
       AgentUpdatedEvent.OutputTuple,
       AgentUpdatedEvent.OutputObject

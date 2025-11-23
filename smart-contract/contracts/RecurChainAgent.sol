@@ -98,6 +98,12 @@ contract RecurChainAgent is Ownable, ReentrancyGuard, Pausable, DataTypes, Event
 
     /**
      * @dev Update an existing agent
+     * @param agentId ID of the agent to update
+     * @param _name New agent name
+     * @param _description New description
+     * @param _amount New payment amount
+     * @param _frequency New payment frequency
+     * @param _recipient New recipient address
      */
     function updateAgent(
         uint256 agentId,
@@ -109,6 +115,10 @@ contract RecurChainAgent is Ownable, ReentrancyGuard, Pausable, DataTypes, Event
     ) external onlyAgentOwner(agentId) {
         Agent storage agent = agents[agentId];
 
+        // Check if agent is active
+        if (!agent.isActive) revert AgentNotActive();
+
+        // Update fields if provided
         if (bytes(_name).length > 0) {
             agent.name = _name;
         }
@@ -124,7 +134,7 @@ contract RecurChainAgent is Ownable, ReentrancyGuard, Pausable, DataTypes, Event
 
         agent.frequency = _frequency;
 
-        emit AgentUpdated(agentId, _name, _amount, _frequency);
+        emit AgentUpdated(agentId, msg.sender, agent.name, agent.amount, agent.frequency);
     }
 
     /**
@@ -238,10 +248,39 @@ contract RecurChainAgent is Ownable, ReentrancyGuard, Pausable, DataTypes, Event
 
     /**
      * @dev Cancel and delete an agent
+     * @param agentId ID of the agent to cancel
      */
     function cancelAgent(uint256 agentId) external onlyAgentOwner(agentId) {
+        Agent storage agent = agents[agentId];
+        address owner = agent.owner;
+
+        // Delete agent from storage
         delete agents[agentId];
-        emit AgentCancelled(agentId);
+
+        // Remove from user's agent list
+        _removeAgentFromUserList(owner, agentId);
+
+        emit AgentCancelled(agentId, msg.sender);
+    }
+
+    /**
+     * @dev Internal function to remove agent from user's list
+     * @param user Address of the user
+     * @param agentId ID of the agent to remove
+     */
+    function _removeAgentFromUserList(address user, uint256 agentId) internal {
+        uint256[] storage userAgentList = userAgents[user];
+        uint256 length = userAgentList.length;
+
+        for (uint256 i = 0; i < length; i++) {
+            if (userAgentList[i] == agentId) {
+                // Move the last element to the position being deleted
+                userAgentList[i] = userAgentList[length - 1];
+                // Remove the last element
+                userAgentList.pop();
+                break;
+            }
+        }
     }
 
     /**

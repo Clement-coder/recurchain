@@ -15,6 +15,12 @@ const _abi = [
         name: "agentId",
         type: "uint256",
       },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "user",
+        type: "address",
+      },
     ],
     name: "AgentCancelled",
     type: "event",
@@ -96,6 +102,12 @@ const _abi = [
         internalType: "uint256",
         name: "agentId",
         type: "uint256",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "user",
+        type: "address",
       },
       {
         indexed: false,

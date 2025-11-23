@@ -22,6 +22,7 @@ abstract contract Events is DataTypes {
 
     event AgentUpdated(
         uint256 indexed agentId,
+        address indexed user,
         string name,
         uint256 amount,
         Frequency frequency
@@ -29,7 +30,7 @@ abstract contract Events is DataTypes {
 
     event AgentPaused(uint256 indexed agentId);
     event AgentResumed(uint256 indexed agentId);
-    event AgentCancelled(uint256 indexed agentId);
+    event AgentCancelled(uint256 indexed agentId, address indexed user);
 
     // Events from original contract, not in the provided snippet but good to keep
     event PlatformFeeUpdated(uint256 newFee);
