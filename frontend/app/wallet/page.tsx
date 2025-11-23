@@ -11,6 +11,7 @@ import TransactionHistory from "@/components/wallet/transaction-history";
 
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { ethers } from "ethers";
+import { convertEthToUsd, formatUsd, formatEth } from "@/utils/currency"; // Import utility functions
 
 export default function WalletPage() {
   const { user, ready: privyReady, authenticated } = usePrivy();
@@ -18,6 +19,8 @@ export default function WalletPage() {
 
   const [balance, setBalance] = useState<number>(0);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [ethToUsdRate, setEthToUsdRate] = useState<number | null>(null); // New state for ETH to USD rate
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
@@ -32,6 +35,44 @@ export default function WalletPage() {
     return true;
   });
 
+  // Effect: Fetch ETH to USD conversion rate
+  useEffect(() => {
+    const fetchEthToUsdRate = async () => {
+      try {
+        const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd");
+        const data = await response.json();
+        if (data.ethereum && data.ethereum.usd) {
+          setEthToUsdRate(data.ethereum.usd);
+        } else {
+          console.error("Failed to fetch ETH to USD rate: Invalid response", data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch ETH to USD rate:", error);
+      }
+    };
+
+    fetchEthToUsdRate();
+  }, []); // Run once on component mount
+
+  const fetchBalance = async () => {
+    if (!walletsReady || !authenticated) return;
+    const embedded = wallets.find((w) => w.walletClientType === "privy");
+    if (!embedded) return;
+
+    setIsRefreshing(true);
+    try {
+      const provider = await embedded.getEthereumProvider();
+      const etherProvider = new ethers.BrowserProvider(provider);
+      const bal = await etherProvider.getBalance(embedded.address);
+      const formatted = parseFloat(ethers.formatEther(bal));
+      setBalance(formatted);
+    } catch (err) {
+      console.error("Error fetching balance", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // Effect: find embedded wallet + fetch balance
   useEffect(() => {
     if (!privyReady || !walletsReady || !authenticated) {
@@ -45,22 +86,57 @@ export default function WalletPage() {
     }
 
     setWalletAddress(embedded.address);
+    fetchBalance();
+  }, [privyReady, walletsReady, authenticated, wallets]); // Added transactions as a dependency
 
-    (async () => {
+  // Effect: Fetch transaction history
+  useEffect(() => {
+    if (!walletAddress) return;
+
+    const fetchTransactions = async () => {
       try {
-        const provider = await embedded.getEthereumProvider();
-        const etherProvider = new ethers.BrowserProvider(provider);
-        const bal = await etherProvider.getBalance(embedded.address);
-        const formatted = parseFloat(ethers.formatEther(bal));
-        setBalance(formatted);
-      } catch (err) {
-        console.error("Error fetching balance", err);
+        // Using a placeholder API key for now. In a real app, this should be secured.
+        const apiKey = process.env.NEXT_PUBLIC_BASESCAN_API_KEY || "";
+        const url = `https://api.routescan.io/v2/network/testnet/evm/84532/etherscan/api?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&page=1&offset=50&sort=desc&apikey=${apiKey}`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.status === "1" && Array.isArray(data.result)) {
+          const fetchedTransactions: Transaction[] = data.result.map((tx: any) => {
+            const isExpense = tx.from.toLowerCase() === walletAddress.toLowerCase();
+            const timestamp = parseInt(tx.timeStamp) * 1000; // Convert to milliseconds
+            const date = new Date(timestamp);
+
+            return {
+              id: tx.hash,
+              type: isExpense ? "expense" : "income",
+              agent: isExpense ? tx.to : tx.from, // Simplified: recipient/sender as agent
+              amount: parseFloat(ethers.formatEther(tx.value)),
+              currency: "ETH", // Assuming ETH for now
+              status: tx.isError === "0" ? "success" : "failed",
+              date: date.toLocaleDateString(),
+              time: date.toLocaleTimeString(),
+              recipient: isExpense ? tx.to : tx.from,
+              txHash: tx.hash,
+            };
+          });
+          setTransactions(fetchedTransactions);
+        } else {
+          console.error("Error fetching transactions:", data.message);
+          setTransactions([]); // Clear transactions on error
+        }
+      } catch (error) {
+        console.error("Failed to fetch transactions:", error);
+        setTransactions([]); // Clear transactions on error
       }
-    })();
-  }, [privyReady, walletsReady, authenticated, wallets]);
+    };
+
+    fetchTransactions();
+  }, [walletAddress]); // Re-run when walletAddress changes
 
   if (!privyReady || !walletsReady) {
-    return <div>Loading wallet info…</div>;
+    return <div className="text-5xl text-center item-center justify-center">Loading wallet info…</div>;
   }
 
   if (!authenticated) {
@@ -79,7 +155,13 @@ export default function WalletPage() {
         </motion.div>
 
         <div className="p-6 space-y-6">
-          <WalletHeader balance={balance} walletAddress={walletAddress} />
+          <WalletHeader
+            balance={balance}
+            walletAddress={walletAddress}
+            ethToUsdRate={ethToUsdRate}
+            onRefresh={fetchBalance}
+            isRefreshing={isRefreshing}
+          />
           <WalletActions
             onDeposit={() => setShowDepositModal(true)}
             onWithdraw={() => setShowWithdrawModal(true)}
@@ -91,6 +173,7 @@ export default function WalletPage() {
               onFilterStatusChange={setFilterStatus}
               filterType={filterType}
               onFilterTypeChange={setFilterType}
+              ethToUsdRate={ethToUsdRate} // Pass ethToUsdRate
             />
           ) : (
             <div className="relative text-center py-12 text-muted-foreground bg-card border border-border rounded-lg">
@@ -112,20 +195,11 @@ export default function WalletPage() {
           <DepositModal
             walletAddress={walletAddress}
             onClose={() => setShowDepositModal(false)}
-            onConfirm={(amt) => {
-              setBalance((b) => b + amt);
-              setShowDepositModal(false);
-            }}
           />
         )}
         {showWithdrawModal && (
           <WithdrawModal
-            balance={balance}
             onClose={() => setShowWithdrawModal(false)}
-            onConfirm={(amt) => {
-              setBalance((b) => b - amt);
-              setShowWithdrawModal(false);
-            }}
           />
         )}
       </div>
@@ -133,17 +207,17 @@ export default function WalletPage() {
   );
 }
 
+import QRCode from "react-qr-code"; // Import QRCode
+
+// ... (rest of the file)
+
 function DepositModal({
   onClose,
-  onConfirm,
   walletAddress,
 }: {
   onClose: () => void;
-  onConfirm: (amount: number) => void;
   walletAddress: string | null;
 }) {
-  const [amount, setAmount] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -152,15 +226,6 @@ function DepositModal({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  };
-
-  const handleSubmit = () => {
-    if (!amount || parseFloat(amount) <= 0) return;
-    setIsProcessing(true);
-    setTimeout(() => {
-      onConfirm(parseFloat(amount));
-      setIsProcessing(false);
-    }, 1000);
   };
 
   return (
@@ -199,38 +264,23 @@ function DepositModal({
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Amount
-            </label>
-            <div className="flex items-center border border-border rounded-lg bg-input">
-              <input
-                type="number"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="flex-1 px-4 py-3 bg-transparent text-foreground focus:outline-none"
-              />
-              <span className="px-4 text-muted-foreground">USD</span>
+          {walletAddress && (
+            <div className="flex justify-center p-4 bg-background rounded-lg">
+              <QRCode value={walletAddress} size={180} level="H" />
             </div>
-          </div>
+          )}
+
+          <p className="text-sm text-muted-foreground text-center">
+            Scan this QR code to deposit funds to your wallet.
+          </p>
 
           <div className="flex gap-3 pt-4">
             <button
               onClick={onClose}
               className="flex-1 px-4 py-2 rounded-lg border border-border text-foreground hover:bg-secondary transition-colors"
             >
-              Cancel
+              Close
             </button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleSubmit}
-              disabled={isProcessing || !amount}
-              className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
-              {isProcessing ? "Processing..." : "Confirm Deposit"}
-            </motion.button>
           </div>
         </div>
       </motion.div>
@@ -239,28 +289,10 @@ function DepositModal({
 }
 
 function WithdrawModal({
-  balance,
   onClose,
-  onConfirm,
 }: {
-  balance: number;
   onClose: () => void;
-  onConfirm: (amount: number) => void;
 }) {
-  const [amount, setAmount] = useState("");
-  const [withdrawType, setWithdrawType] = useState<"usdc" | "naira">("usdc");
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const handleSubmit = () => {
-    const num = parseFloat(amount);
-    if (!amount || num <= 0 || num > balance) return;
-    setIsProcessing(true);
-    setTimeout(() => {
-      onConfirm(num);
-      setIsProcessing(false);
-    }, 1000);
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -271,81 +303,27 @@ function WithdrawModal({
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-card border border-border rounded-lg p-6 max-w-sm w-full"
+        className="bg-card border border-border rounded-lg p-6 max-w-sm w-full text-center"
       >
         <h3 className="text-xl font-semibold text-foreground mb-4">
           Withdraw Funds
         </h3>
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Withdraw as
-            </label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setWithdrawType("usdc")}
-                className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all ${
-                  withdrawType === "usdc"
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-secondary text-foreground"
-                }`}
-              >
-                USDC
-              </button>
-              <button
-                onClick={() => setWithdrawType("naira")}
-                className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all ${
-                  withdrawType === "naira"
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-secondary text-foreground"
-                }`}
-              >
-                Naira
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-secondary rounded-lg p-3">
-            <p className="text-xs text-muted-foreground">Available Balance</p>
-            <p className="text-lg font-semibold text-foreground">
-              {balance.toFixed(2)} USDC
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Amount
-            </label>
-            <div className="flex items-center border border-border rounded-lg bg-input">
-              <input
-                type="number"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="flex-1 px-4 py-3 bg-transparent text-foreground focus:outline-none"
-              />
-              <span className="px-4 text-muted-foreground">
-                {withdrawType === "usdc" ? "USDC" : "₦"}
-              </span>
-            </div>
-          </div>
+          <Wand2 size={48} className="mx-auto text-muted-foreground mb-4" />
+          <p className="text-lg text-foreground">
+            Withdrawal functionality is coming soon!
+          </p>
+          <p className="text-sm text-muted-foreground">
+            We're working hard to bring you this feature. Please check back later.
+          </p>
 
           <div className="flex gap-3 pt-4">
             <button
               onClick={onClose}
               className="flex-1 px-4 py-2 rounded-lg border border-border text-foreground hover:bg-secondary transition-colors"
             >
-              Cancel
+              Close
             </button>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleSubmit}
-              disabled={isProcessing || !amount}
-              className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
-              {isProcessing ? "Processing..." : "Confirm Withdrawal"}
-            </motion.button>
           </div>
         </div>
       </motion.div>

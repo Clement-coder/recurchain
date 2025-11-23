@@ -2,14 +2,21 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Copy, ClipboardCheck } from "lucide-react";
+import { Copy, ClipboardCheck, RefreshCw } from "lucide-react";
+import { convertEthToUsd, formatUsd } from "@/utils/currency"; // Import utility functions
 
 export default function WalletHeader({
   balance,
   walletAddress,
+  ethToUsdRate, // Accept ethToUsdRate as a prop
+  onRefresh,
+  isRefreshing,
 }: {
   balance: number;
   walletAddress: string | null;
+  ethToUsdRate: number | null; // Define prop type
+  onRefresh: () => void;
+  isRefreshing: boolean;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -20,6 +27,8 @@ export default function WalletHeader({
       setTimeout(() => setCopied(false), 2000);
     }
   };
+
+  const usdBalance = convertEthToUsd(balance, ethToUsdRate);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -42,15 +51,38 @@ export default function WalletHeader({
       >
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className="relative">
-          <p className="text-sm text-muted-foreground mb-2">Total Balance</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-muted-foreground mb-2">Total Balance</p>
+            <button
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="p-1 rounded-full hover:bg-secondary"
+            >
+              <motion.div
+                animate={{ rotate: isRefreshing ? 360 : 0 }}
+                transition={{
+                  duration: 1,
+                  repeat: isRefreshing ? Infinity : 0,
+                  ease: "linear",
+                }}
+              >
+                <RefreshCw size={14} className="text-muted-foreground" />
+              </motion.div>
+            </button>
+          </div>
           <motion.h2
             key={balance}
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
-            className="text-4xl font-bold text-foreground mb-4"
+            className="text-4xl font-bold text-foreground mb-2" // Reduced bottom margin
           >
-            ${balance.toFixed(2)}
+            {balance.toFixed(4)} ETH
           </motion.h2>
+          {ethToUsdRate !== null && (
+            <p className="text-lg text-muted-foreground mb-4">
+              {formatUsd(usdBalance)}
+            </p>
+          )}
           <div className="flex items-center gap-4">
             <div>
               <p className="text-xs text-muted-foreground">Network</p>
@@ -58,7 +90,7 @@ export default function WalletHeader({
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Asset</p>
-              <p className="text-sm font-semibold text-foreground">USDC</p>
+              <p className="text-sm font-semibold text-foreground">ETH</p>
             </div>
           </div>
         </div>
