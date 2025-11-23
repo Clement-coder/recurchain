@@ -1,0 +1,13 @@
+An unexpected error occurred:
+
+TypeError: Cannot read properties of undefined (reading 'address')
+    at Suite.<anonymous> (/home/jaja/Desktop/recurchain/smart-contract/test/RecurChain.cts:86:29)
+    at Object.create (/home/jaja/Desktop/recurchain/smart-contract/node_modules/mocha/lib/interfaces/common.js:148:19)
+    at context.describe.context.context (/home/jaja/Desktop/recurchain/smart-contract/node_modules/mocha/lib/interfaces/bdd.js:42:27)
+    at Suite.<anonymous> (/home/jaja/Desktop/recurchain/smart-contract/test/RecurChain.cts:82:3)
+    at Object.create (/home/jaja/Desktop/recurchain/smart-contract/node_modules/mocha/lib/interfaces/common.js:148:19)
+    at context.describe.context.context (/home/jaja/Desktop/recurchain/smart-contract/node_modules/mocha/lib/interfaces/bdd.js:42:27)
+    at Object.<anonymous> (/home/jaja/Desktop/recurchain/smart-contract/test/RecurChain.cts:10:1)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Module.m._compile (/home/jaja/Desktop/recurchain/smart-contract/node_modules/ts-node/src/index.ts:1618:23)
+    at node:internal/modules/cjs/loader:1895:10
