@@ -4,6 +4,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import DashboardLayout from "@/components/layout/dashboard-layout"
 import AgentForm from "@/components/agents/agent-form"
+import DeleteConfirmationModal from "@/components/agents/DeleteConfirmationModal" // Import the new modal
 
 import { agentIcons, Agent, AgentData } from "@/types"
 
@@ -41,6 +42,8 @@ export default function AgentsPage() {
 
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false) // State for delete modal visibility
+  const [agentToDelete, setAgentToDelete] = useState<{ id: string; name: string } | null>(null) // State to store agent to be deleted
 
   const handleSaveAgent = (agentData: AgentData) => {
     if (editingId) {
@@ -73,8 +76,24 @@ export default function AgentsPage() {
     setShowForm(true)
   }
 
-  const handleDeleteAgent = (id: string) => {
-    setAgents(agents.filter((agent) => agent.id !== id))
+  // Modified handleDeleteAgent to show the confirmation modal
+  const handleDeleteAgent = (id: string, name: string) => {
+    setAgentToDelete({ id, name })
+    setShowDeleteModal(true)
+  }
+
+  // New function to confirm and perform deletion
+  const confirmDeletion = () => {
+    if (agentToDelete) {
+      setAgents(agents.filter((agent) => agent.id !== agentToDelete.id))
+      setShowDeleteModal(false)
+      setAgentToDelete(null)
+    }
+  }
+
+  const cancelDeletion = () => {
+    setShowDeleteModal(false)
+    setAgentToDelete(null)
   }
 
   return (
@@ -170,7 +189,7 @@ export default function AgentsPage() {
                         <motion.button
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => handleDeleteAgent(agent.id)}
+                          onClick={() => handleDeleteAgent(agent.id, agent.name)} // Pass agent.name here
                           className="px-4 py-2 text-sm rounded-lg border border-destructive text-destructive hover:bg-destructive/10 transition-colors"
                         >
                           Delete
@@ -193,6 +212,15 @@ export default function AgentsPage() {
           )}
         </div>
       </div>
+
+      {/* Render the DeleteConfirmationModal */}
+      {showDeleteModal && agentToDelete && (
+        <DeleteConfirmationModal
+          agentName={agentToDelete.name}
+          onConfirm={confirmDeletion}
+          onCancel={cancelDeletion}
+        />
+      )}
     </DashboardLayout>
   )
 }

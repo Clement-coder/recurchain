@@ -53,6 +53,35 @@ interface AgentFormProps {
   onCancel: () => void
 }
 
+
+const InputField = ({
+  id,
+  label,
+  description,
+  Icon,
+  children,
+  error,
+}: {
+  id: string
+  label: string
+  description: string
+  Icon: React.ElementType
+  children: React.ReactNode
+  error?: string
+}) => (
+  <div>
+    <label htmlFor={id} className="block text-sm font-semibold text-foreground mb-1">
+      <div className="flex items-center gap-2">
+        <Icon className="w-4 h-4 text-muted-foreground" />
+        <span>{label}</span>
+      </div>
+    </label>
+    <p className="text-xs text-muted-foreground mb-2">{description}</p>
+    {children}
+    {error && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><Info className="w-3 h-3"/>{error}</p>}
+  </div>
+)
+
 export default function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
   const [formData, setFormData] = useState(
     agent || {
@@ -125,34 +154,6 @@ export default function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
   const handleInputChange = useCallback((field: string, value: string) => {
     setFormData((prevData) => ({ ...prevData, [field]: value }))
   }, [])
-
-  const InputField = ({
-    id,
-    label,
-    description,
-    Icon,
-    children,
-    error,
-  }: {
-    id: string
-    label: string
-    description: string
-    Icon: React.ElementType
-    children: React.ReactNode
-    error?: string
-  }) => (
-    <div>
-      <label htmlFor={id} className="block text-sm font-semibold text-foreground mb-1">
-        <div className="flex items-center gap-2">
-          <Icon className="w-4 h-4 text-muted-foreground" />
-          <span>{label}</span>
-        </div>
-      </label>
-      <p className="text-xs text-muted-foreground mb-2">{description}</p>
-      {children}
-      {error && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><Info className="w-3 h-3"/>{error}</p>}
-    </div>
-  )
 
   return (
     <motion.div
@@ -264,6 +265,7 @@ export default function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
                   onChange={(value) => handleInputChange("recipientType", value)}
                   className="w-32"
                   itemClassName="flex items-center gap-2"
+                  borderRadiusClass="rounded-r-lg"
                 />
               </div>
             </InputField>

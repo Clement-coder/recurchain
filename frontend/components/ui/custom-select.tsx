@@ -17,6 +17,7 @@ interface CustomSelectProps {
   placeholder?: string
   className?: string
   itemClassName?: string
+  borderRadiusClass?: string // New prop for controlling border-radius
 }
 
 export default function CustomSelect({
@@ -26,6 +27,7 @@ export default function CustomSelect({
   placeholder = "Select an option",
   className = "",
   itemClassName = "",
+  borderRadiusClass, // Destructure the new prop
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const selectRef = useRef<HTMLDivElement>(null)
@@ -54,9 +56,9 @@ export default function CustomSelect({
     <div className={`relative ${className}`} ref={selectRef}>
       <button
         type="button"
-        className={`flex items-center justify-between w-full px-4 py-2.5 rounded-lg bg-input border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all ${
+        className={`flex items-center justify-between w-full px-4 py-2.5 bg-input border border-border text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all ${
           isOpen ? "ring-2 ring-primary/50 border-primary" : ""
-        }`}
+        } ${borderRadiusClass ? borderRadiusClass : "rounded-lg"}`} // Apply borderRadiusClass or default
         onClick={() => setIsOpen(!isOpen)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
