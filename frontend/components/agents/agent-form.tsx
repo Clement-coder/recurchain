@@ -432,10 +432,10 @@ export default function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleConfirm}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-semibold"
+                  className="flex-1 flex items-center justify-center gap-2 px-8 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors font-semibold"
                 >
                   <Check className="w-4 h-4" />
-                  Confirm & Activate
+                  Activate
                 </motion.button>
               </div>
             </motion.div>
