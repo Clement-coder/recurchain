@@ -181,7 +181,8 @@ export interface RecurChainAgentInterface extends Interface {
       string,
       BigNumberish,
       BigNumberish,
-      AddressLike
+      AddressLike,
+      BigNumberish
     ]
   ): string;
   encodeFunctionData(
@@ -682,7 +683,8 @@ export interface RecurChainAgent extends BaseContract {
       _description: string,
       _amount: BigNumberish,
       _frequency: BigNumberish,
-      _recipient: AddressLike
+      _recipient: AddressLike,
+      _startDate: BigNumberish
     ],
     [void],
     "nonpayable"
@@ -891,7 +893,8 @@ export interface RecurChainAgent extends BaseContract {
       _description: string,
       _amount: BigNumberish,
       _frequency: BigNumberish,
-      _recipient: AddressLike
+      _recipient: AddressLike,
+      _startDate: BigNumberish
     ],
     [void],
     "nonpayable"

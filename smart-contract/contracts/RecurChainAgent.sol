@@ -104,6 +104,7 @@ contract RecurChainAgent is Ownable, ReentrancyGuard, Pausable, DataTypes, Event
      * @param _amount New payment amount
      * @param _frequency New payment frequency
      * @param _recipient New recipient address
+     * @param _startDate New start date (pass 0 to keep current)
      */
     function updateAgent(
         uint256 agentId,
@@ -111,28 +112,63 @@ contract RecurChainAgent is Ownable, ReentrancyGuard, Pausable, DataTypes, Event
         string memory _description,
         uint256 _amount,
         Frequency _frequency,
-        address _recipient
+        address _recipient,
+        uint256 _startDate
     ) external onlyAgentOwner(agentId) {
         Agent storage agent = agents[agentId];
 
         // Check if agent is active
         if (!agent.isActive) revert AgentNotActive();
 
-        // Update fields if provided
+        // Track if we need to recalculate nextExecutionTime
+        bool shouldRecalculateNext = false;
+
+        // Update name if provided
         if (bytes(_name).length > 0) {
             agent.name = _name;
         }
+
+        // Update description if provided
         if (bytes(_description).length > 0) {
             agent.description = _description;
         }
+
+        // Update amount with validation
         if (_amount > 0) {
             agent.amount = _amount;
         }
+
+        // Update recipient with validation
         if (_recipient != address(0)) {
             agent.recipient = _recipient;
         }
 
-        agent.frequency = _frequency;
+        // Update frequency - this affects next execution time
+        if (agent.frequency != _frequency) {
+            agent.frequency = _frequency;
+            shouldRecalculateNext = true;
+        }
+
+        // Update startDate if provided and valid
+        if (_startDate > 0) {
+            if (_startDate < block.timestamp) revert InvalidStartDate();
+            agent.startDate = _startDate;
+            shouldRecalculateNext = true;
+        }
+
+        // Recalculate nextExecutionTime if startDate or frequency changed
+        if (shouldRecalculateNext) {
+            // If the agent hasn't been executed yet, use the new startDate
+            if (agent.executionCount == 0) {
+                agent.nextExecutionTime = agent.startDate;
+            } else {
+                // If already executed, calculate next run from current time
+                agent.nextExecutionTime = calculateNextExecution(
+                    block.timestamp,
+                    agent.frequency
+                );
+            }
+        }
 
         emit AgentUpdated(agentId, msg.sender, agent.name, agent.amount, agent.frequency);
     }

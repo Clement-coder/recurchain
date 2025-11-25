@@ -124,7 +124,8 @@ describe("RecurChainAgent - Issue #5 Tests", function () {
           "Updated Description",
           ethers.parseUnits("200", 6),
           1, // WEEKLY
-          recipient.address
+          recipient.address,
+          0 // Keep current startDate
         )
       )
         .to.emit(recurChainAgent, "AgentUpdated")
@@ -148,7 +149,8 @@ describe("RecurChainAgent - Issue #5 Tests", function () {
           "Updated Description",
           ethers.parseUnits("200", 6),
           1,
-          recipient.address
+          recipient.address,
+          0
         )
       ).to.be.revertedWithCustomError(recurChainAgent, "AgentNotActive");
     });
@@ -161,7 +163,8 @@ describe("RecurChainAgent - Issue #5 Tests", function () {
           "Updated Description",
           ethers.parseUnits("200", 6),
           1,
-          recipient.address
+          recipient.address,
+          0
         )
       ).to.be.revertedWithCustomError(recurChainAgent, "NotAgentOwner");
     });
@@ -175,13 +178,92 @@ describe("RecurChainAgent - Issue #5 Tests", function () {
         "",
         0,
         originalAgent.frequency,
-        ZERO_ADDRESS
+        ZERO_ADDRESS,
+        0 // Keep current startDate
       );
 
       const updatedAgent = await recurChainAgent.getAgent(agentId);
       expect(updatedAgent.name).to.equal("New Name");
       expect(updatedAgent.amount).to.equal(originalAgent.amount);
       expect(updatedAgent.recipient).to.equal(originalAgent.recipient);
+    });
+
+    it("should update startDate and recalculate nextExecutionTime", async function () {
+      const originalAgent = await recurChainAgent.getAgent(agentId);
+      const newStartDate = Math.floor(Date.now() / 1000) + 172800; // 2 days from now
+
+      await recurChainAgent.connect(user1).updateAgent(
+        agentId,
+        "",
+        "",
+        0,
+        originalAgent.frequency,
+        ZERO_ADDRESS,
+        newStartDate
+      );
+
+      const updatedAgent = await recurChainAgent.getAgent(agentId);
+      expect(updatedAgent.startDate).to.equal(newStartDate);
+      // Since executionCount is 0, nextExecutionTime should be set to new startDate
+      expect(updatedAgent.nextExecutionTime).to.equal(newStartDate);
+    });
+
+    it("should revert if new startDate is in the past", async function () {
+      const pastDate = Math.floor(Date.now() / 1000) - 86400; // 1 day ago
+
+      await expect(
+        recurChainAgent.connect(user1).updateAgent(
+          agentId,
+          "",
+          "",
+          0,
+          3, // MONTHLY
+          ZERO_ADDRESS,
+          pastDate
+        )
+      ).to.be.revertedWithCustomError(recurChainAgent, "InvalidStartDate");
+    });
+
+    it("should recalculate nextExecutionTime when frequency changes", async function () {
+      const originalAgent = await recurChainAgent.getAgent(agentId);
+      const originalNextExecution = originalAgent.nextExecutionTime;
+
+      // Change frequency from MONTHLY to WEEKLY
+      await recurChainAgent.connect(user1).updateAgent(
+        agentId,
+        "",
+        "",
+        0,
+        1, // WEEKLY
+        ZERO_ADDRESS,
+        0
+      );
+
+      const updatedAgent = await recurChainAgent.getAgent(agentId);
+      expect(updatedAgent.frequency).to.equal(1); // WEEKLY
+
+      // For agents that haven't been executed (executionCount == 0),
+      // nextExecutionTime should remain as startDate
+      if (originalAgent.executionCount === 0n) {
+        expect(updatedAgent.nextExecutionTime).to.equal(originalAgent.startDate);
+      }
+    });
+
+    it("should keep nextExecutionTime unchanged when only name/amount/recipient updates", async function () {
+      const originalAgent = await recurChainAgent.getAgent(agentId);
+
+      await recurChainAgent.connect(user1).updateAgent(
+        agentId,
+        "Just Name Change",
+        "Just Description Change",
+        ethers.parseUnits("150", 6),
+        originalAgent.frequency, // Same frequency
+        recipient.address,
+        0 // No startDate change
+      );
+
+      const updatedAgent = await recurChainAgent.getAgent(agentId);
+      expect(updatedAgent.nextExecutionTime).to.equal(originalAgent.nextExecutionTime);
     });
   });
 
