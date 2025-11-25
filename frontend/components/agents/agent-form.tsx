@@ -20,6 +20,7 @@ import {
   Wallet,
   FileText,
 } from "lucide-react"
+import { RecurchainABI } from "@/constants/RecurChainAgentABI"
 
 import { Agent, AgentData, AgentType } from "@/types"
 import CustomSelect from "@/components/ui/custom-select"
@@ -154,6 +155,8 @@ export default function AgentForm({ agent, onSave, onCancel }: AgentFormProps) {
   const handleInputChange = useCallback((field: string, value: string) => {
     setFormData((prevData) => ({ ...prevData, [field]: value }))
   }, [])
+  const contractAddress = "0xa51a587D6da5c912bF79eFe627DA0090DEB9e9b1";
+
 
   return (
     <motion.div
