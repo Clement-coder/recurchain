@@ -6,6 +6,8 @@ import { MoreVertical, Circle, Trash2, Eye } from "lucide-react"
 
 import { Agent } from "@/types"
 
+import DeleteConfirmationModal from "@/components/agents/DeleteConfirmationModal"
+
 interface AgentCardProps {
   agent: Agent
   onPauseResume: () => void
@@ -129,38 +131,11 @@ export default function AgentCard({ agent, onPauseResume, onDelete }: AgentCardP
 
       <AnimatePresence>
         {showDeleteModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              className="bg-card border border-border rounded-lg p-6 max-w-sm"
-            >
-              <h3 className="text-lg font-semibold text-foreground mb-2">Delete Agent?</h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                This will permanently delete the "{agent.name}" agent and stop all future payments.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="flex-1 px-4 py-2 rounded-md border border-border text-foreground hover:bg-secondary transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="flex-1 px-4 py-2 rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
+          <DeleteConfirmationModal
+            agentName={agent.name}
+            onConfirm={confirmDelete}
+            onCancel={() => setShowDeleteModal(false)}
+          />
         )}
       </AnimatePresence>
     </>

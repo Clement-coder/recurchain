@@ -7,10 +7,9 @@ import AgentForm from "@/components/agents/agent-form"
 export default function CreateAgentPage() {
   const router = useRouter()
 
-  const handleSave = (agentData: any) => {
-    console.log("Saving agent:", agentData)
-    // Here you would typically make an API call to save the agent
-    // For now, we'll just redirect back to the agents list
+  const handleSaveSuccess = (agentId: bigint) => {
+    console.log("Successfully created agent with ID:", agentId)
+    // Redirect to the agent's detail page or dashboard
     router.push("/agents")
   }
 
@@ -20,8 +19,8 @@ export default function CreateAgentPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex-1 overflow-auto p-6">
-        <AgentForm onSave={handleSave} onCancel={handleCancel} agent={undefined} />
+      <div className="flex-1 overflow-auto p-2 sm:p-4 md:p-6">
+        <AgentForm onSaveSuccess={handleSaveSuccess} onCancel={handleCancel} agent={undefined} />
       </div>
     </DashboardLayout>
   )

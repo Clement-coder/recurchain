@@ -1,113 +1,112 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { motion } from "framer-motion";
-import { Bell } from "lucide-react";
+import { Bell, Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import AgentGrid from "@/components/dashboard/agent-grid";
 import NotificationsPanel from "@/components/dashboard/notifications-panel";
 import SearchBar from "@/components/dashboard/search-bar";
-import { Agent, agentIcons } from "@/types";
+import { Agent, agentIcons, AgentType } from "@/types";
+import { useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { RecurchainABI } from '@/constants/RecurChainAgentABI';
+import { formatUnits } from 'viem';
+import { agentTypes, frequencies } from '@/components/agents/agent-form';
 
 export default function DashboardPage() {
   const { user, ready, authenticated } = usePrivy();
 
-  const [agents, setAgents] = useState<Agent[]>([
-    {
-      id: "1",
-      name: "Spotify Subscription",
-      type: "subscription",
-      status: "active",
-      amount: 9.99,
-      frequency: "monthly",
-      recipient: "Spotify AB",
-      recipientType: "USDC",
-      lastPayment: "2024-11-15",
-      nextRun: "2024-12-15",
-      icon: agentIcons.subscription,
-      description: "Monthly subscription for music streaming.",
-      startDate: "2023-01-15",
-    },
-    {
-      id: "2",
-      name: "Rent Payment",
-      type: "rent",
-      status: "active",
-      amount: 1200,
-      frequency: "monthly",
-      recipient: "John Landlord",
-      recipientType: "Naira",
-      lastPayment: "2024-11-01",
-      nextRun: "2024-12-01",
-      icon: agentIcons.rent,
-      description: "Monthly rent for apartment.",
-      startDate: "2023-01-01",
-    },
-    {
-      id: "3",
-      name: "Freelance Developer",
-      type: "salary",
-      status: "paused",
-      amount: 500,
-      frequency: "bi-weekly",
-      recipient: "Dev Team Fund",
-      recipientType: "USDC",
-      lastPayment: "2024-11-10",
-      nextRun: "2024-11-24",
-      icon: agentIcons.salary,
-      description: "Payment for freelance work.",
-      startDate: "2023-05-10",
-    },
-    {
-      id: "4",
-      name: "Insurance Premium",
-      type: "insurance",
-      status: "active",
-      amount: 125.5,
-      frequency: "monthly",
-      recipient: "AXA Insurance",
-      recipientType: "USDC",
-      lastPayment: "2024-11-10",
-      nextRun: "2024-12-10",
-      icon: agentIcons.insurance,
-      description: "Monthly car insurance premium.",
-      startDate: "2023-02-10",
-    },
-    {
-      id: "5",
-      name: "Cloud Storage",
-      type: "subscription",
-      status: "active",
-      amount: 9.99,
-      frequency: "monthly",
-      recipient: "Google Cloud",
-      recipientType: "USDC",
-      lastPayment: "2024-11-08",
-      nextRun: "2024-12-08",
-      icon: agentIcons.subscription,
-      description: "Monthly subscription for cloud storage.",
-      startDate: "2023-03-08",
-    },
-    {
-      id: "6",
-      name: "Loan Repayment",
-      type: "loan",
-      status: "active",
-      amount: 350,
-      frequency: "monthly",
-      recipient: "Bank of Lagos",
-      recipientType: "Naira",
-      lastPayment: "2024-11-12",
-      nextRun: "2024-12-12",
-      icon: agentIcons.loan,
-      description: "Monthly loan repayment.",
-      startDate: "2023-04-12",
-    },
-  ]);
-  const [filteredAgents, setFilteredAgents] = useState<Agent[]>(agents);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [filteredAgents, setFilteredAgents] = useState<Agent[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
+
+  const contractAddress = '0xFB1Ffa53d8eDdD1282703B918e873dCed5D1Da19';
+
+  const { data: agentIds, isLoading: isLoadingAgentIds, refetch: refetchAgentIds } = useReadContract({
+    address: contractAddress,
+    abi: RecurchainABI,
+    functionName: 'getUserAgents',
+    args: [user?.wallet?.address!],
+    // @ts-ignore
+    enabled: !!user?.wallet?.address,
+  });
+
+  const agentContracts = useMemo(() => {
+    if (!agentIds) return [];
+    // @ts-ignore
+    return (agentIds as bigint[]).map(id => ({
+      address: contractAddress,
+      abi: RecurchainABI,
+      functionName: 'getAgent',
+      args: [id],
+    }));
+  }, [agentIds]);
+
+  const { data: agentsData, isLoading: isLoadingAgents, refetch: refetchAgentsData } = useReadContracts({
+    // @ts-ignore
+    contracts: agentContracts,
+    query: {
+        // @ts-ignore
+      enabled: agentContracts.length > 0,
+    }
+  });
+
+  const { data: txHash, writeContract, isPending: isWriteLoading, error: writeError } = useWriteContract();
+
+  const { isLoading: isTxLoading, isSuccess } = useWaitForTransactionReceipt({
+    hash: txHash,
+    onSuccess(data) {
+      refetchAgentIds();
+      refetchAgentsData();
+    },
+  });
+
+  useEffect(() => {
+    if (agentsData && agentIds) {
+      const formattedAgents = (agentsData as any[])
+        .map((data, index) => {
+          if (!data.result) return null;
+          const [
+            owner,
+            name,
+            agentType, // number
+            description,
+            recipient,
+            amount, // bigint
+            frequency, // number
+            startDate, // bigint
+            nextExecutionTime, // bigint
+            isActive, // boolean
+            // ... other fields
+          ] = data.result;
+
+          const agentTypeInfo = agentTypes.find(t => t.enum === agentType);
+          const frequencyInfo = frequencies.find(f => f.enum === frequency);
+          const typeName = agentTypeInfo?.value || 'other';
+
+          return {
+            id: (agentIds as bigint[])[index].toString(),
+            name,
+            type: typeName as AgentType,
+            status: isActive ? 'active' : 'paused',
+            amount: parseFloat(formatUnits(amount, 6)),
+            frequency: frequencyInfo?.label || 'Unknown',
+            recipient,
+            recipientType: 'USDC',
+            lastPayment: '', // TODO
+            nextRun: new Date(Number(nextExecutionTime) * 1000).toLocaleDateString(),
+            icon: agentIcons[typeName as AgentType],
+            description,
+            startDate: new Date(Number(startDate) * 1000).toLocaleDateString(),
+          };
+        })
+        .filter(Boolean) as Agent[];
+      setAgents(formattedAgents);
+      setFilteredAgents(formattedAgents);
+    }
+  }, [agentsData, agentIds]);
 
   // Compute displayName or email
   const displayName = (() => {
@@ -142,47 +141,40 @@ export default function DashboardPage() {
     setFilteredAgents(filtered);
   };
 
-  const handlePauseResume = (id: string) => {
-    setAgents(
-      agents.map((agent) =>
-        agent.id === id
-          ? {
-              ...agent,
-              status: agent.status === "active" ? "paused" : "active",
-            }
-          : agent
-      )
-    );
-    setFilteredAgents(
-      filteredAgents.map((agent) =>
-        agent.id === id
-          ? {
-              ...agent,
-              status: agent.status === "active" ? "paused" : "active",
-            }
-          : agent
-      )
-    );
+  const handlePauseResume = (id: string, status: 'active' | 'paused') => {
+    const functionName = status === 'active' ? 'pauseAgent' : 'resumeAgent';
+    writeContract({
+      address: contractAddress,
+      abi: RecurchainABI,
+      functionName,
+      args: [BigInt(id)],
+    });
   };
 
   const handleDeleteAgent = (id: string) => {
-    setAgents(agents.filter((agent) => agent.id !== id));
-    setFilteredAgents(filteredAgents.filter((agent) => agent.id !== id));
+    writeContract({
+      address: contractAddress,
+      abi: RecurchainABI,
+      functionName: 'cancelAgent',
+      args: [BigInt(id)],
+    });
   };
 
-  // Optional: Wait for Privy to be ready
-  if (!ready) {
-    return <div>Loading …</div>;
-  }
+  const isLoading = !ready || isLoadingAgentIds || isLoadingAgents || isWriteLoading || isTxLoading;
 
   // Require auth to show dashboard
-  if (!authenticated) {
+  if (!authenticated && ready) {
     return <div>Please log in to view your dashboard.</div>;
   }
 
   return (
     <DashboardLayout>
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto relative">
+        {isLoading && (
+          <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <Loader2 className="w-12 h-12 text-primary animate-spin" />
+          </div>
+        )}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -220,7 +212,7 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <NotificationsPanel />
+              NotificationsPanel />
             </motion.div>
           )}
 

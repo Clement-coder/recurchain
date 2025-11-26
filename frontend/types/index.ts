@@ -40,10 +40,10 @@ export interface AgentData {
 export interface Transaction {
   id: string
   type: "expense" | "income"
-  agent: string
+  agentName: string
   amount: number
   currency: "USDC" | "Naira"
-  status: "success" | "pending" | "failed"
+  status: "success" | "pending" | "failed" | "completed"
   date: string
   time: string
   recipient: string

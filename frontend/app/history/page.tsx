@@ -1,95 +1,108 @@
 "use client"
 
-import { useState } from "react"
-import { motion } from "framer-motion"
-import { BarChart3, Calendar, Download, Search, TrendingDown, TrendingUp, ChevronDown } from "lucide-react"
-import DashboardLayout from "@/components/layout/dashboard-layout"
+import { useState, useEffect, useMemo } from "react";
+import { motion } from "framer-motion";
+import { BarChart3, Calendar, Download, Search, TrendingDown, TrendingUp, ChevronDown, Loader2 } from "lucide-react";
+import DashboardLayout from "@/components/layout/dashboard-layout";
+import { usePrivy } from "@privy-io/react-auth";
+import { useReadContract, useReadContracts } from 'wagmi';
+import { RecurchainABI } from '@/constants/RecurChainAgentABI';
+import { formatUnits } from 'viem';
+import { Transaction } from '@/types';
 
 export default function HistoryPage() {
-  const [transactions, setTransactions] = useState([
-    {
-      id: "1",
-      agentName: "Spotify Subscription",
-      amount: 9.99,
-      currency: "USDC",
-      status: "completed",
-      date: "2024-11-20",
-      time: "14:32",
-      recipient: "Spotify AB",
-      type: "expense",
-    },
-    {
-      id: "2",
-      agentName: "Rent Payment",
-      amount: 1200,
-      currency: "Naira",
-      status: "completed",
-      date: "2024-11-19",
-      time: "09:15",
-      recipient: "John Landlord",
-      type: "expense",
-    },
-    {
-      id: "3",
-      agentName: "Freelance Developer",
-      amount: 500,
-      currency: "USDC",
-      status: "completed",
-      date: "2024-11-18",
-      time: "16:45",
-      recipient: "Dev Team Fund",
-      type: "income",
-    },
-    {
-      id: "4",
-      agentName: "Insurance Premium",
-      amount: 125.5,
-      currency: "USDC",
-      status: "completed",
-      date: "2024-11-17",
-      time: "11:20",
-      recipient: "AXA Insurance",
-      type: "expense",
-    },
-    {
-      id: "5",
-      agentName: "Cloud Storage",
-      amount: 9.99,
-      currency: "USDC",
-      status: "pending",
-      date: "2024-11-16",
-      time: "08:00",
-      recipient: "Google Cloud",
-      type: "expense",
-    },
-    {
-      id: "6",
-      agentName: "Loan Repayment",
-      amount: 350,
-      currency: "Naira",
-      status: "completed",
-      date: "2024-11-15",
-      time: "10:30",
-      recipient: "Bank of Lagos",
-      type: "expense",
-    },
-    {
-      id: "7",
-      agentName: "Salary Deposit",
-      amount: 2000,
-      currency: "USDC",
-      status: "completed",
-      date: "2024-11-12",
-      time: "00:00",
-      recipient: "Your Wallet",
-      type: "income",
-    },
-  ])
-
+  const { user, ready, authenticated } = usePrivy();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [filterType, setFilterType] = useState("all")
   const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  const contractAddress = '0xFB1Ffa53d8eDdD1282703B918e873dCed5D1Da19';
+
+  const { data: agentIds, isLoading: isLoadingAgentIds } = useReadContract({
+    address: contractAddress,
+    abi: RecurchainABI,
+    functionName: 'getUserAgents',
+    args: [user?.wallet?.address!],
+    // @ts-ignore
+    enabled: !!user?.wallet?.address,
+  });
+
+  const agentContracts = useMemo(() => {
+    if (!agentIds) return [];
+    // @ts-ignore
+    return (agentIds as bigint[]).map(id => ({
+      address: contractAddress,
+      abi: RecurchainABI,
+      functionName: 'getAgent',
+      args: [id],
+    }));
+  }, [agentIds]);
+
+  const { data: agentsData, isLoading: isLoadingAgents } = useReadContracts({
+    // @ts-ignore
+    contracts: agentContracts,
+    query: {
+        // @ts-ignore
+      enabled: agentContracts.length > 0,
+    }
+  });
+
+  const paymentContracts = useMemo(() => {
+    if (!agentIds) return [];
+    // @ts-ignore
+    return (agentIds as bigint[]).map(id => ({
+      address: contractAddress,
+      abi: RecurchainABI,
+      functionName: 'getAgentPayments',
+      args: [id],
+    }));
+  }, [agentIds]);
+
+  const { data: paymentsData, isLoading: isLoadingPayments } = useReadContracts({
+    // @ts-ignore
+    contracts: paymentContracts,
+    query: {
+        // @ts-ignore
+      enabled: paymentContracts.length > 0,
+    }
+  });
+
+  useEffect(() => {
+    if (paymentsData && agentsData && agentIds) {
+      const agentNames = (agentsData as any[]).reduce((acc, data, index) => {
+        if (data.result) {
+          const agentId = (agentIds as bigint[])[index].toString();
+          acc[agentId] = data.result[1]; // name is the second element
+        }
+        return acc;
+      }, {} as { [key: string]: string });
+
+      const allPayments = (paymentsData as any[])
+        .filter(p => p.result)
+        .flatMap(p => p.result)
+        .map((payment: any, index: number) => {
+          const [agentId, recipient, amount, timestamp, txHash] = payment;
+          return {
+            id: `${agentId}-${index}`,
+            agentName: agentNames[agentId.toString()] || 'Unknown Agent',
+            amount: parseFloat(formatUnits(amount, 6)),
+            currency: 'USDC',
+            status: 'completed',
+            date: new Date(Number(timestamp) * 1000).toLocaleDateString(),
+            time: new Date(Number(timestamp) * 1000).toLocaleTimeString(),
+            recipient: recipient,
+            type: 'expense',
+            txHash: txHash,
+          };
+        })
+        .sort((a, b) => new Date(b.date + ' ' + b.time).getTime() - new Date(a.date + ' ' + a.time).getTime());
+
+      setTransactions(allPayments as any);
+    }
+  }, [paymentsData, agentsData, agentIds]);
+
 
   const filteredTransactions = transactions.filter((tx) => {
     if (searchQuery && !tx.agentName.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -105,6 +118,18 @@ export default function HistoryPage() {
     completedCount: transactions.filter((t) => t.status === "completed").length,
     pendingCount: transactions.filter((t) => t.status === "pending").length,
     totalExpenses: transactions.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0),
+  }
+
+  const isLoading = !ready || isLoadingAgentIds || isLoadingAgents || isLoadingPayments;
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex-1 overflow-auto relative flex items-center justify-center">
+          <Loader2 className="w-12 h-12 text-primary animate-spin" />
+        </div>
+      </DashboardLayout>
+    )
   }
 
   return (

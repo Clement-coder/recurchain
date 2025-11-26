@@ -58,7 +58,7 @@ contract RecurChainAgent is Ownable, ReentrancyGuard, Pausable, DataTypes, Event
         if (bytes(_name).length == 0) revert InvalidName();
         if (_recipient == address(0)) revert InvalidRecipient();
         if (_amount == 0) revert InvalidAmount();
-        if (_startDate < block.timestamp) revert InvalidStartDate();
+        if (_startDate < (block.timestamp - (block.timestamp % 86400))) revert InvalidStartDate();
 
         agentCounter++;
         uint256 agentId = agentCounter;

@@ -1,4 +1,4 @@
-export const RecurchainABI = [
+export const RecurchainABI =  [
     {
       "inputs": [
         {

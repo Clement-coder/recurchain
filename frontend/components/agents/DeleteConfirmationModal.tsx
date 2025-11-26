@@ -17,11 +17,29 @@ export default function DeleteConfirmationModal({
 }: DeleteConfirmationModalProps) {
   const [inputValue, setInputValue] = useState("")
   const [attempts, setAttempts] = useState(0)
+  const [lockoutEnd, setLockoutEnd] = useState<number | null>(null)
+  const [remainingTime, setRemainingTime] = useState<number>(0)
   const maxAttempts = 3
   const inputRef = useRef<HTMLInputElement>(null)
 
   const isConfirmDisabled = inputValue !== agentName || attempts >= maxAttempts
   const hasExceededAttempts = attempts >= maxAttempts
+
+  useEffect(() => {
+    if (lockoutEnd) {
+      const interval = setInterval(() => {
+        const now = Date.now()
+        const remaining = Math.ceil((lockoutEnd - now) / 1000)
+        setRemainingTime(remaining)
+        if (remaining <= 0) {
+          clearInterval(interval)
+          setLockoutEnd(null)
+          setAttempts(0)
+        }
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [lockoutEnd])
 
   useEffect(() => {
     if (inputRef.current) {
@@ -33,7 +51,11 @@ export default function DeleteConfirmationModal({
     if (inputValue === agentName) {
       onConfirm()
     } else {
-      setAttempts((prev) => prev + 1)
+      const newAttempts = attempts + 1
+      setAttempts(newAttempts)
+      if (newAttempts >= maxAttempts) {
+        setLockoutEnd(Date.now() + 30 * 60 * 1000)
+      }
     }
   }
 
@@ -85,16 +107,16 @@ export default function DeleteConfirmationModal({
               placeholder="Type agent name to confirm"
               disabled={hasExceededAttempts}
             />
-            {inputValue !== agentName && inputValue !== "" && (
+            {inputValue !== agentName && inputValue !== "" && !hasExceededAttempts && (
               <p className="text-xs text-destructive mt-1 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
                 Agent name does not match. {maxAttempts - attempts} attempts remaining.
               </p>
             )}
-            {hasExceededAttempts && (
+            {hasExceededAttempts && lockoutEnd && (
               <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
-                You have exceeded the maximum number of attempts. Deletion is disabled.
+                You have exceeded the maximum number of attempts. Please try again in {Math.ceil(remainingTime / 60)} minutes.
               </p>
             )}
           </div>

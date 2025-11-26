@@ -7,7 +7,7 @@ import { Agent } from "@/types"
 
 interface AgentGridProps {
   agents: Agent[]
-  onPauseResume: (id: string) => void
+  onPauseResume: (id: string, status: "active" | "paused") => void
   onDelete: (id: string) => void
 }
 
@@ -55,7 +55,7 @@ export default function AgentGrid({ agents, onPauseResume, onDelete }: AgentGrid
             <AgentCard
               key={agent.id}
               agent={agent}
-              onPauseResume={() => onPauseResume(agent.id)}
+              onPauseResume={() => onPauseResume(agent.id, agent.status)}
               onDelete={() => onDelete(agent.id)}
             />
           ))}
