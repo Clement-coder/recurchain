@@ -12,10 +12,9 @@
 
 # Hardhat compilation (v2) support directory
 /cache
-
+.env*
 # Typechain output
 /types
-.env*
+
 # Hardhat coverage reports
 /coverage
-.env
