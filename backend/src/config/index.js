@@ -23,6 +23,6 @@ module.exports = {
   jwtSecret: process.env.JWT_SECRET,
   offramp: {
     apiKey: process.env.OFFRAMP_API_KEY,
-    baseUrl: "https://api.bread.africa/identity",
+    baseUrl: "https://processor-prod.up.railway.app",
   },
 };

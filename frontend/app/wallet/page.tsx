@@ -8,7 +8,9 @@ import DashboardLayout from "@/components/layout/dashboard-layout";
 import WalletHeader from "@/components/wallet/wallet-header";
 import WalletActions from "@/components/wallet/wallet-actions";
 import TransactionHistory from "@/components/wallet/transaction-history";
+import OffRampModal from "@/components/wallet/OffRampModal";
 
+import NetworkSwitcher from "@/components/ui/NetworkSwitcher";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { ethers } from "ethers";
 import { convertEthToUsd, formatUsd, formatEth } from "@/utils/currency"; // Import utility functions
@@ -28,6 +30,7 @@ export default function WalletPage() {
 
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showOffRampModal, setShowOffRampModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"all" | string>("all");
   const [filterType, setFilterType] = useState<"all" | string>("all");
 
@@ -99,11 +102,17 @@ export default function WalletPage() {
   const fetchTransactions = async () => {
     if (!walletAddress) return;
 
+    const embedded = wallets.find((w) => w.walletClientType === "privy");
+    if (!embedded) return;
+    const activeChain = embedded.supportedChains.find(chain => chain.id === embedded.chainId);
+    if(!activeChain) return;
+
     setIsTransactionsRefreshing(true);
     try {
       // Using a placeholder API key for now. In a real app, this should be secured.
       const apiKey = process.env.NEXT_PUBLIC_BASESCAN_API_KEY || "";
-      const url = `https://api.routescan.io/v2/network/testnet/evm/84532/etherscan/api?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&page=1&offset=50&sort=desc&apikey=${apiKey}`;
+      const network_type = activeChain.name.toLowerCase().includes("sepolia") ? "testnet" : "mainnet";
+      const url = `https://api.routescan.io/v2/network/${network_type}/evm/${activeChain.id}/etherscan/api?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&page=1&offset=50&sort=desc&apikey=${apiKey}`;
 
       const response = await fetch(url);
       const data = await response.json();
@@ -145,8 +154,12 @@ export default function WalletPage() {
 
   // Effect: Fetch transaction history
   useEffect(() => {
+    const embedded = wallets.find((w) => w.walletClientType === "privy");
+    if (!embedded) return;
+    const activeChain = embedded.supportedChains.find(chain => chain.id === embedded.chainId);
+    if(!activeChain) return;
     fetchTransactions();
-  }, [walletAddress]); // Re-run when walletAddress changes
+  }, [walletAddress, wallets]); // Re-run when walletAddress or active chain changes
 
   const handleSend = async (to: string, amount: string) => {
     const embedded = wallets.find((w) => w.walletClientType === "privy");
@@ -171,6 +184,34 @@ export default function WalletPage() {
     await fetchTransactions();
   };
 
+  const handleInitiateOffRamp = async (
+    walletId: string,
+    amount: number,
+    currency: string,
+    beneficiaryId: string
+  ) => {
+    try {
+      const response = await fetch("/api/offramp/initiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet_id: walletId, amount, currency, beneficiary_id: beneficiaryId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Off-ramp initiation failed");
+      }
+
+      return { success: true, message: data.message };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || "An unknown error occurred.",
+      };
+    }
+  };
+
   if (!privyReady || !walletsReady) {
     return (
       <div className="text-5xl text-center item-center justify-center">
@@ -183,6 +224,10 @@ export default function WalletPage() {
     return <div>Please log in to see your wallet.</div>;
   }
 
+  const embeddedWallet = wallets.find((w) => w.walletClientType === "privy");
+  const activeChain = embeddedWallet?.supportedChains.find(chain => chain.id === embeddedWallet.chainId);
+  const isOffRampDisabled = activeChain?.name.toLowerCase().includes("sepolia");
+
   return (
     <DashboardLayout>
       <div className="flex-1 overflow-auto">
@@ -191,7 +236,10 @@ export default function WalletPage() {
           animate={{ opacity: 1, y: 0 }}
           className="sticky top-0 bg-background/95 backdrop-blur border-b border-border z-40 p-6"
         >
-          <h1 className="text-3xl font-bold text-foreground">Wallet</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-foreground">Wallet</h1>
+            <NetworkSwitcher />
+          </div>
         </motion.div>
 
         <div className="p-6 space-y-6">
@@ -205,6 +253,8 @@ export default function WalletPage() {
           <WalletActions
             onDeposit={() => setShowDepositModal(true)}
             onSend={() => setShowSendModal(true)}
+            onOffRamp={() => setShowOffRampModal(true)}
+            isOffRampDisabled={isOffRampDisabled}
           />
           {transactions.length > 0 ? (
             <TransactionHistory
@@ -244,6 +294,13 @@ export default function WalletPage() {
             onClose={() => setShowSendModal(false)}
             onSend={handleSend}
             ethToUsdRate={ethToUsdRate}
+          />
+        )}
+        {showOffRampModal && user && (
+          <OffRampModal
+            walletId={user.id}
+            onClose={() => setShowOffRampModal(false)}
+            onInitiate={handleInitiateOffRamp}
           />
         )}
       </div>
@@ -517,7 +574,7 @@ function SendModal({
               <button
                 onClick={handleSubmit}
                 disabled={isSending}
-                className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 {isSending ? (
                   <div className="flex items-center justify-center gap-2">

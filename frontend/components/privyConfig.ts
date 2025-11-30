@@ -1,5 +1,5 @@
 import type {PrivyClientConfig} from '@privy-io/react-auth';
-import { baseSepolia } from 'wagmi/chains';
+import { base, baseSepolia } from 'wagmi/chains';
 
 // Replace this with your Privy config
 export const privyConfig: PrivyClientConfig = {
@@ -12,6 +12,7 @@ export const privyConfig: PrivyClientConfig = {
     logo: '/recurchain_logo.png',
   },
   supportedChains: [
+    base,
     baseSepolia,
   ],
 };
