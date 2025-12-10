@@ -31,6 +31,7 @@ import { baseSepolia } from "wagmi/chains"
 import { parseUnits } from "viem"
 
 import { RecurchainABI } from "@/constants/RecurChainAgentABI"
+import { contractAddresses } from "@/constants/contracts";
 import { Agent, AgentData, AgentType } from "@/types"
 import CustomSelect from "@/components/ui/custom-select"
 
@@ -103,17 +104,17 @@ export default function AgentForm({ agent, onSaveSuccess, onCancel }: AgentFormP
   const { ready, authenticated } = usePrivy()
   const { wallets } = useWallets()
   
+  const activeWallet = wallets[0];
+  const contractAddress = activeWallet ? contractAddresses[activeWallet.chainId] : undefined;
+
   const embeddedWallet = useMemo(
     () =>
       wallets.find(
         (wallet) =>
-          wallet.walletClientType === "privy" &&
-          wallet.chainId === `eip155:${baseSepolia.id}`
+          wallet.walletClientType === "privy"
       ),
     [wallets]
   )
-
-  const contractAddress = "0xFB1Ffa53d8eDdD1282703B918e873dCed5D1Da19"
 
   const validationErrors = useMemo(() => {
     const newErrors: { [key: string]: string } = {}

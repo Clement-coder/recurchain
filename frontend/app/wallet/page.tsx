@@ -155,7 +155,7 @@ export default function WalletPage() {
   // Effect: Fetch transaction history
   useEffect(() => {
     const embedded = wallets.find((w) => w.walletClientType === "privy");
-    if (!embedded) return;
+    if (!embedded || !embedded.supportedChains) return;
     const activeChain = embedded.supportedChains.find(chain => chain.id === embedded.chainId);
     if(!activeChain) return;
     fetchTransactions();
@@ -225,7 +225,7 @@ export default function WalletPage() {
   }
 
   const embeddedWallet = wallets.find((w) => w.walletClientType === "privy");
-  const activeChain = embeddedWallet?.supportedChains.find(chain => chain.id === embeddedWallet.chainId);
+  const activeChain = embeddedWallet?.supportedChains?.find(chain => chain.id === embeddedWallet.chainId);
   const isOffRampDisabled = activeChain?.name.toLowerCase().includes("sepolia");
 
   return (

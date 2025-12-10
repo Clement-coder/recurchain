@@ -46,6 +46,46 @@ class OfframpService {
       throw new Error(error.response.data.message || "Error getting offramp status");
     }
   }
+
+  async createBeneficiary(data) {
+    try {
+      const response = await this.api.post("/beneficiaries", data);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating beneficiary:", error.response.data);
+      throw new Error(error.response.data.message || "Error creating beneficiary");
+    }
+  }
+
+  async getBeneficiaries(wallet_id) {
+    try {
+      const response = await this.api.get(`/beneficiaries?wallet_id=${wallet_id}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error getting beneficiaries:", error.response.data);
+      throw new Error(error.response.data.message || "Error getting beneficiaries");
+    }
+  }
+
+  async getBanks() {
+    try {
+      const response = await this.api.get("/banks");
+      return response.data;
+    } catch (error) {
+      console.error("Error getting banks:", error.response.data);
+      throw new Error(error.response.data.message || "Error getting banks");
+    }
+  }
+
+  async resolveAccount(data) {
+    try {
+      const response = await this.api.post("/accounts/resolve", data);
+      return response.data;
+    } catch (error) {
+      console.error("Error resolving account:", error.response.data);
+      throw new Error(error.response.data.message || "Error resolving account");
+    }
+  }
 }
 
 module.exports = new OfframpService(config.offramp.apiKey, config.offramp.baseUrl);

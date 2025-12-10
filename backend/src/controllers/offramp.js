@@ -39,6 +39,54 @@ class OfframpController {
       res.status(500).json({ message: "Error getting offramp status", error: error.message });
     }
   }
+
+  async createBeneficiary(req, res) {
+    try {
+      const { wallet_id, bank_code, account_number, account_name } = req.body;
+      if (!wallet_id || !bank_code || !account_number || !account_name) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      const result = await offrampService.createBeneficiary({ wallet_id, bank_code, account_number, account_name });
+      res.status(201).json({ message: "Beneficiary created successfully", data: result });
+    } catch (error) {
+      res.status(500).json({ message: "Error creating beneficiary", error: error.message });
+    }
+  }
+
+  async getBeneficiaries(req, res) {
+    try {
+      const { wallet_id } = req.query;
+      if (!wallet_id) {
+        return res.status(400).json({ message: "Missing required field: wallet_id" });
+      }
+      const result = await offrampService.getBeneficiaries(wallet_id);
+      res.status(200).json({ message: "Beneficiaries fetched successfully", data: result });
+    } catch (error) {
+      res.status(500).json({ message: "Error getting beneficiaries", error: error.message });
+    }
+  }
+
+  async getBanks(req, res) {
+    try {
+      const result = await offrampService.getBanks();
+      res.status(200).json({ message: "Banks fetched successfully", data: result });
+    } catch (error) {
+      res.status(500).json({ message: "Error getting banks", error: error.message });
+    }
+  }
+
+  async resolveAccount(req, res) {
+    try {
+      const { account_number, bank_code } = req.body;
+      if (!account_number || !bank_code) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      const result = await offrampService.resolveAccount({ account_number, bank_code });
+      res.status(200).json({ message: "Account resolved successfully", data: result });
+    } catch (error) {
+      res.status(500).json({ message: "Error resolving account", error: error.message });
+    }
+  }
 }
 
 module.exports = new OfframpController();

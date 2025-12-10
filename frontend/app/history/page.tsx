@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { BarChart3, Calendar, Download, Search, TrendingDown, TrendingUp, ChevronDown, Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { usePrivy } from "@privy-io/react-auth";
+import { useWallets } from "@privy-io/react-auth";
+import { contractAddresses } from "@/constants/contracts";
 import { useReadContract, useReadContracts } from 'wagmi';
 import { RecurchainABI } from '@/constants/RecurChainAgentABI';
 import { formatUnits } from 'viem';
@@ -12,13 +14,15 @@ import { Transaction } from '@/types';
 
 export default function HistoryPage() {
   const { user, ready, authenticated } = usePrivy();
+  const { wallets } = useWallets();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [searchQuery, setSearchQuery] = useState("")
   const [filterStatus, setFilterStatus] = useState("all")
   const [filterType, setFilterType] = useState("all")
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const contractAddress = '0xFB1Ffa53d8eDdD1282703B918e873dCed5D1Da19';
+  const activeWallet = wallets[0];
+  const contractAddress = activeWallet ? contractAddresses[activeWallet.chainId] : undefined;
 
   const { data: agentIds, isLoading: isLoadingAgentIds } = useReadContract({
     address: contractAddress,
@@ -26,11 +30,11 @@ export default function HistoryPage() {
     functionName: 'getUserAgents',
     args: [user?.wallet?.address!],
     // @ts-ignore
-    enabled: !!user?.wallet?.address,
+    enabled: !!user?.wallet?.address && !!contractAddress,
   });
 
   const agentContracts = useMemo(() => {
-    if (!agentIds) return [];
+    if (!agentIds || !contractAddress) return [];
     // @ts-ignore
     return (agentIds as bigint[]).map(id => ({
       address: contractAddress,
@@ -38,7 +42,7 @@ export default function HistoryPage() {
       functionName: 'getAgent',
       args: [id],
     }));
-  }, [agentIds]);
+  }, [agentIds, contractAddress]);
 
   const { data: agentsData, isLoading: isLoadingAgents } = useReadContracts({
     // @ts-ignore
@@ -50,7 +54,7 @@ export default function HistoryPage() {
   });
 
   const paymentContracts = useMemo(() => {
-    if (!agentIds) return [];
+    if (!agentIds || !contractAddress) return [];
     // @ts-ignore
     return (agentIds as bigint[]).map(id => ({
       address: contractAddress,
@@ -58,7 +62,7 @@ export default function HistoryPage() {
       functionName: 'getAgentPayments',
       args: [id],
     }));
-  }, [agentIds]);
+  }, [agentIds, contractAddress]);
 
   const { data: paymentsData, isLoading: isLoadingPayments } = useReadContracts({
     // @ts-ignore

@@ -9,6 +9,8 @@ import AgentGrid from "@/components/dashboard/agent-grid";
 import NotificationsPanel from "@/components/dashboard/notifications-panel";
 import SearchBar from "@/components/dashboard/search-bar";
 import { Agent, agentIcons, AgentType } from "@/types";
+import { useWallets } from "@privy-io/react-auth";
+import { contractAddresses } from "@/constants/contracts";
 import { useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { RecurchainABI } from '@/constants/RecurChainAgentABI';
 import { formatUnits } from 'viem';
@@ -16,13 +18,15 @@ import { agentTypes, frequencies } from '@/components/agents/agent-form';
 
 export default function DashboardPage() {
   const { user, ready, authenticated } = usePrivy();
+  const { wallets } = useWallets();
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [filteredAgents, setFilteredAgents] = useState<Agent[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const contractAddress = '0xFB1Ffa53d8eDdD1282703B918e873dCed5D1Da19';
+  const activeWallet = wallets[0];
+  const contractAddress = activeWallet ? contractAddresses[activeWallet.chainId] : undefined;
 
   const { data: agentIds, isLoading: isLoadingAgentIds, refetch: refetchAgentIds } = useReadContract({
     address: contractAddress,
@@ -30,11 +34,11 @@ export default function DashboardPage() {
     functionName: 'getUserAgents',
     args: [user?.wallet?.address!],
     // @ts-ignore
-    enabled: !!user?.wallet?.address,
+    enabled: !!user?.wallet?.address && !!contractAddress,
   });
 
   const agentContracts = useMemo(() => {
-    if (!agentIds) return [];
+    if (!agentIds || !contractAddress) return [];
     // @ts-ignore
     return (agentIds as bigint[]).map(id => ({
       address: contractAddress,
@@ -42,7 +46,7 @@ export default function DashboardPage() {
       functionName: 'getAgent',
       args: [id],
     }));
-  }, [agentIds]);
+  }, [agentIds, contractAddress]);
 
   const { data: agentsData, isLoading: isLoadingAgents, refetch: refetchAgentsData } = useReadContracts({
     // @ts-ignore
@@ -207,6 +211,7 @@ export default function DashboardPage() {
         </motion.div>
 
         <div className="p-6 space-y-6">
+          {/* <invalid-jsx /> */}
           {showNotifications && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}

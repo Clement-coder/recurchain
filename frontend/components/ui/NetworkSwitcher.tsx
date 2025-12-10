@@ -9,25 +9,28 @@ export default function NetworkSwitcher() {
   const { wallets, ready } = useWallets();
   const [isOpen, setIsOpen] = useState(false);
 
-  if (!ready) {
+  if (!ready || wallets.length === 0) {
     return null;
   }
 
-  const embeddedWallet = wallets.find(
-    (wallet) => wallet.walletClientType === "privy"
-  );
+  const activeWallet = wallets[0];
 
-  if (!embeddedWallet) {
+  if (!activeWallet) {
     return null;
   }
 
-  const supportedChains = embeddedWallet.supportedChains;
+  const supportedChains = activeWallet.supportedChains;
+
+  if (!supportedChains) {
+    return null;
+  }
+
   const activeChain = supportedChains.find(
-    (chain) => chain.id === embeddedWallet.chainId
+    (chain) => chain.id === activeWallet.chainId
   );
 
   const switchChain = async (chainId: number) => {
-    await embeddedWallet.switchChain(chainId);
+    await activeWallet.switchChain(chainId);
     setIsOpen(false);
   };
 
