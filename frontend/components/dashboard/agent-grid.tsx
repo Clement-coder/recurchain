@@ -1,6 +1,8 @@
 "use client"
 
 import { motion } from "framer-motion"
+import Link from "next/link"
+import { Briefcase, Info } from "lucide-react"
 import AgentCard from "./agent-card"
 
 import { Agent } from "@/types"
@@ -40,9 +42,24 @@ export default function AgentGrid({ agents, onPauseResume, onDelete }: AgentGrid
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center py-12 bg-card border border-border rounded-lg"
+          className="relative text-center py-12 text-muted-foreground bg-card border border-border rounded-lg"
         >
-          <p className="text-muted-foreground">No agents found. Create one to get started.</p>
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+          <div className="relative">
+            <div className="flex justify-center">
+              <Briefcase className="w-16 h-16" />
+            </div>
+            <p className="mt-4 text-lg">No payment agents found.</p>
+            <p className="text-sm">
+              Create an agent to start automating your recurring payments.
+            </p>
+            <div className="mt-4 mx-auto max-w-sm p-3 bg-secondary/50 border-t border-border rounded-lg flex items-center justify-center gap-2 text-xs">
+              <Info size={14} />
+              <span>
+                You need to <Link href="/wallet" className="font-bold text-primary hover:underline">fund your wallet</Link> before creating an agent.
+              </span>
+            </div>
+          </div>
         </motion.div>
       ) : (
         <motion.div

@@ -21,7 +21,9 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-qr-code": "^2.0.18",
-    "wagmi": "^2.15.5"
+    "viem": "2.21.54",
+    "wagmi": "^2.15.5",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -36,5 +38,11 @@
     "tape": "^5.9.0",
     "typescript": "^5",
     "why-is-node-running": "^3.2.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "viem": "2.21.54",
+      "zod": "3.23.8"
+    }
   }
 }

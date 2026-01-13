@@ -109,13 +109,17 @@ export default function WalletPage() {
 
     setIsTransactionsRefreshing(true);
     try {
-      // Using a placeholder API key for now. In a real app, this should be secured.
       const apiKey = process.env.NEXT_PUBLIC_BASESCAN_API_KEY || "";
-      const network_type = activeChain.name.toLowerCase().includes("sepolia") ? "testnet" : "mainnet";
-      const url = `https://api.routescan.io/v2/network/${network_type}/evm/${activeChain.id}/etherscan/api?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&page=1&offset=50&sort=desc&apikey=${apiKey}`;
+      const isSepolia = activeChain.name.toLowerCase().includes("sepolia");
+      const baseURL = isSepolia 
+        ? "https://api-sepolia.basescan.org/api" 
+        : "https://api.basescan.org/api";
+      
+      const url = `${baseURL}?module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=99999999&page=1&offset=50&sort=desc&apikey=${apiKey}`;
 
       const response = await fetch(url);
       const data = await response.json();
+      console.log("Basescan API response:", data);
 
       if (data.status === "1" && Array.isArray(data.result)) {
         const fetchedTransactions: Transaction[] = data.result.map(

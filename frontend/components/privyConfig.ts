@@ -3,7 +3,7 @@ import { base, baseSepolia } from 'wagmi/chains';
 
 // Replace this with your Privy config
 export const privyConfig: PrivyClientConfig = {
-
+  defaultChain: baseSepolia,
   loginMethods: ['google', 'email', 'github'],
   appearance: {
     showWalletLoginFirst: false, // Set to false to resolve the warning

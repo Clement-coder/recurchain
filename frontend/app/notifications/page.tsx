@@ -2,53 +2,11 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
+import { Inbox } from "lucide-react"
 import DashboardLayout from "@/components/layout/dashboard-layout"
 
-const mockNotifications = [
-  {
-    id: "1",
-    type: "success",
-    title: "Payment Successful",
-    message: "Your Spotify subscription payment of $9.99 has been processed successfully.",
-    timestamp: "2 hours ago",
-    read: false,
-  },
-  {
-    id: "2",
-    type: "warning",
-    title: "Low Balance Alert",
-    message: "Your USDC balance has fallen below your threshold of $100. Current balance: $87.50",
-    timestamp: "5 hours ago",
-    read: false,
-  },
-  {
-    id: "3",
-    type: "success",
-    title: "Deposit Received",
-    message: "You have received a deposit of 5000 USDC from Kraken.",
-    timestamp: "1 day ago",
-    read: true,
-  },
-  {
-    id: "4",
-    type: "error",
-    title: "Payment Failed",
-    message: "Your payment to Rent Agent failed due to insufficient balance. Please deposit more USDC.",
-    timestamp: "2 days ago",
-    read: true,
-  },
-  {
-    id: "5",
-    type: "info",
-    title: "Agent Updated",
-    message: "Your Cloud Storage agent has been successfully updated with new payment details.",
-    timestamp: "3 days ago",
-    read: true,
-  },
-]
-
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(mockNotifications)
+  const [notifications, setNotifications] = useState<any[]>([])
   const [filter, setFilter] = useState("all")
 
   const filteredNotifications = notifications.filter((notif) => {
@@ -66,7 +24,7 @@ export default function NotificationsPage() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="sticky top-0 bg-background/95 backdrop-blur border-b border-border z-40 p-6 flex items-center justify-between"
+          className="sticky top-0 bg-background/95 backdrop-blur w-full border-b border-border z-40 p-4 flex items-center justify-between"
         >
           <div>
             <h1 className="text-3xl font-bold text-foreground">Notifications</h1>
@@ -101,9 +59,18 @@ export default function NotificationsPage() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center py-12 bg-card border border-border rounded-lg"
+              className="relative text-center py-12 text-muted-foreground bg-card border border-border rounded-lg"
             >
-              <p className="text-muted-foreground">No notifications</p>
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+              <div className="relative">
+                <div className="flex justify-center">
+                  <Inbox className="w-16 h-16" />
+                </div>
+                <p className="mt-4 text-lg">No notifications yet.</p>
+                <p className="text-sm">
+                  New notifications will appear here.
+                </p>
+              </div>
             </motion.div>
           ) : (
             filteredNotifications.map((notif, idx) => (

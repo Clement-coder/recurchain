@@ -179,20 +179,27 @@ export default function AgentForm({ agent, onSaveSuccess, onCancel }: AgentFormP
 
 
   const handleSubmit = () => {
+    console.log("Submitting form...");
+    console.log("Form is valid:", formIsValid);
+    console.log("writeContract available:", !!writeContract);
+    console.log("Contract address:", contractAddress);
+    const args = [
+        formData.name,
+        BigInt(selectedAgentTypeEnum),
+        formData.description,
+        formData.recipient,
+        formData.amount ? parseUnits(formData.amount, 6) : BigInt(0),
+        BigInt(selectedFrequencyEnum),
+        BigInt(startDateTimestamp),
+    ];
+    console.log("Args being sent:", args);
+
     if (formIsValid && writeContract) {
       writeContract({
         address: contractAddress,
         abi: RecurchainABI,
         functionName: "createAgent",
-        args: [
-          formData.name,
-          selectedAgentTypeEnum,
-          formData.description,
-          formData.recipient,
-          formData.amount ? parseUnits(formData.amount, 6) : BigInt(0),
-          selectedFrequencyEnum,
-          BigInt(startDateTimestamp),
-        ]
+        args: args
       })
     } else {
       const allTouched = Object.keys(formData).reduce((acc, key) => ({ ...acc, [key]: true }), {});

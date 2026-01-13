@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
+import { Briefcase } from "lucide-react"
 import DashboardLayout from "@/components/layout/dashboard-layout"
 import AgentForm from "@/components/agents/agent-form"
 import DeleteConfirmationModal from "@/components/agents/DeleteConfirmationModal" // Import the new modal
@@ -9,36 +10,7 @@ import DeleteConfirmationModal from "@/components/agents/DeleteConfirmationModal
 import { agentIcons, Agent, AgentData } from "@/types"
 
 export default function AgentsPage() {
-  const [agents, setAgents] = useState<Agent[]>([
-    {
-      id: "1",
-      name: "Spotify Subscription",
-      icon: "♫",
-      amount: 9.99,
-      frequency: "monthly",
-      recipient: "Spotify AB",
-      recipientType: "USDC",
-      nextRun: "2024-12-15",
-      status: "active",
-      startDate: "2024-11-15",
-      description: "Monthly subscription payment",
-      type: "subscription",
-    },
-    {
-      id: "2",
-      name: "Rent Payment",
-      icon: "🏠",
-      amount: 1200,
-      frequency: "monthly",
-      recipient: "John Landlord",
-      recipientType: "Naira",
-      nextRun: "2024-12-01",
-      status: "active",
-      startDate: "2024-11-01",
-      description: "Apartment rent",
-      type: "rent",
-    },
-  ])
+  const [agents, setAgents] = useState<Agent[]>([])
 
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -128,15 +100,24 @@ export default function AgentsPage() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-center py-12 bg-card border border-border rounded-lg"
+                  className="relative text-center py-12 text-muted-foreground bg-card border border-border rounded-lg"
                 >
-                  <p className="text-muted-foreground mb-4">No payment agents created yet</p>
-                  <button
-                    onClick={() => setShowForm(true)}
-                    className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                  >
-                    Create Your First Agent
-                  </button>
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+                  <div className="relative">
+                    <div className="flex justify-center">
+                      <Briefcase className="w-16 h-16" />
+                    </div>
+                    <p className="mt-4 text-lg">No payment agents created yet.</p>
+                    <p className="text-sm mb-4">
+                      Create your first agent to automate your payments.
+                    </p>
+                    <button
+                      onClick={() => setShowForm(true)}
+                      className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      Create Your First Agent
+                    </button>
+                  </div>
                 </motion.div>
               ) : (
                 agents.map((agent, idx) => (
